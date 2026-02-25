@@ -1,6 +1,4 @@
-/* app.js — Tornaris Companion App
-   All logic wrapped in an IIFE to avoid global pollution.
-*/
+/* app.js — Tornaris Companion App */
 (function () {
   'use strict';
 
@@ -16,63 +14,54 @@
   }
 
   function saveState() {
-    try {
-      localStorage.setItem('tornaris_state', JSON.stringify(state));
-    } catch (e) {
-      console.warn('localStorage unavailable', e);
-    }
+    try { localStorage.setItem('tornaris_state', JSON.stringify(state)); }
+    catch (e) { console.warn('localStorage unavailable', e); }
   }
 
   function loadState() {
     try {
       const raw = localStorage.getItem('tornaris_state');
       return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      return null;
-    }
+    } catch (e) { return null; }
   }
 
-  function getChar(id) {
-    return CHARACTERS.find(c => c.id === id) || null;
-  }
-
-  function getMonster(id) {
-    return MONSTERS.find(m => m.id === id) || null;
-  }
+  function getChar(id) { return CHARACTERS.find(c => c.id === id) || null; }
+  function getMonster(id) { return MONSTERS.find(m => m.id === id) || null; }
 
   function computeHP(monster, playerCount, isLegendary) {
-    if (monster.hp === null) return 'Especial';
+    if (monster.hp === null) return null;
     let base;
     if (typeof monster.hp === 'string' && monster.hp.endsWith('x')) {
       base = parseInt(monster.hp) * playerCount;
     } else {
-      base = monster.hp;
+      base = Number(monster.hp);
     }
     return isLegendary ? base * 2 : base;
+  }
+
+  function computeHPDisplay(monster, playerCount, isLegendary) {
+    const hp = computeHP(monster, playerCount, isLegendary);
+    return hp === null ? 'Especial' : hp;
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   // ─── Hold-to-repeat ───────────────────────────────────────
 
   function attachHoldButton(el, cb) {
-    let timer = null;
-    let interval = null;
-
+    let timer = null, interval = null;
     function start() {
       cb();
-      timer = setTimeout(() => {
-        interval = setInterval(cb, 80);
-      }, 400);
+      timer = setTimeout(() => { interval = setInterval(cb, 80); }, 400);
     }
-
     function stop() {
-      clearTimeout(timer);
-      clearInterval(interval);
-      timer = null;
-      interval = null;
+      clearTimeout(timer); clearInterval(interval);
+      timer = null; interval = null;
     }
-
     el.addEventListener('pointerdown', e => { e.preventDefault(); start(); });
-    el.addEventListener('pointerup',   stop);
+    el.addEventListener('pointerup', stop);
     el.addEventListener('pointerleave', stop);
     el.addEventListener('pointercancel', stop);
   }
@@ -83,68 +72,94 @@
     const tiers = ['duende', 'ogro', 'golem', 'dragon'];
     let deck = [];
     for (const tier of tiers) {
-      const tierMonsters = MONSTERS.filter(m => m.tier === tier).map(m => m.id);
-      const shuffled = shuffle(tierMonsters);
-      // Remove 2 (keep 3)
-      deck = deck.concat(shuffled.slice(0, 3));
+      const ids = MONSTERS.filter(m => m.tier === tier).map(m => m.id);
+      deck = deck.concat(shuffle(ids).slice(0, 3));
     }
-    return deck; // 12 monsters
+    return deck;
   }
 
-  function buildEventDeck(events) {
+  /**
+   * Build a single combined event deck from day + night events.
+   * Each entry: { type: 'day' | 'night', eventId: number }
+   * Expanded by count, then shuffled together.
+   */
+  function buildCombinedEventDeck() {
     let deck = [];
-    for (const ev of events) {
+    for (const ev of DAY_EVENTS) {
       for (let i = 0; i < ev.count; i++) {
-        deck.push(ev.id);
+        deck.push({ type: 'day', eventId: ev.id });
       }
     }
-    return shuffle(deck);
+    for (const ev of NIGHT_EVENTS) {
+      for (let i = 0; i < ev.count; i++) {
+        deck.push({ type: 'night', eventId: ev.id });
+      }
+    }
+    deck = shuffle(deck);
+
+    // First card is always "Día Normal" (id 1) so game starts smooth
+    const normalIdx = deck.findIndex(c => c.type === 'day' && c.eventId === 1);
+    if (normalIdx > 0) {
+      const card = deck.splice(normalIdx, 1)[0];
+      deck.unshift(card);
+    } else if (normalIdx === -1) {
+      // Fallback: force a Día Normal at front
+      deck.unshift({ type: 'day', eventId: 1 });
+    }
+
+    return deck;
   }
 
   // ─── State ────────────────────────────────────────────────
 
   let state = null;
 
-  const DEFAULT_STATE = {
-    phase: 'setup',
-    previousPhase: 'game',
-    options: {
-      digitalMonsters: false,
-      digitalEvents: false,
-      fullTracking: false,
-    },
-    players: [],
-    game: {
-      currentDay: 1,
-      timeOfDay: 'day',
-      monsterDeck: [],
-      monsterDeckIndex: 0,
-      monsterDefeated: false,
-      dayEventDeck: [],
-      dayEventIndex: 0,
-      nightEventDeck: [],
-      nightEventIndex: 0,
-      pendingNotifications: [],
-    },
-    duel: {
-      player1Id: null,
-      player2Id: null,
-      score1: 0,
-      score2: 0,
-      winnerId: null,
-      matchId: null,
-    },
-    tournament: {
-      phase: 'pre',
-      seeds: [],
-      rounds: [],
-      championId: null,
-    },
-  };
+  function defaultState() {
+    return {
+      phase: 'setup',
+      previousPhase: 'game',
+      options: { digitalMonsters: false, digitalEvents: false, fullTracking: false },
+      players: [],
+      game: {
+        // Combined event deck: [{type:'day'|'night', eventId:number}, ...]
+        eventDeck: [],
+        eventIndex: 0,         // current position in the deck
+        currentDay: 0,         // number of day events seen so far (1-12)
+        timeOfDay: 'day',      // derived from current event type
+        monsterDeck: [],
+        monsterDeckIndex: 0,
+        monsterDefeated: false,
+        pendingNotifications: [],
+      },
+      duel: {
+        player1Id: null, player2Id: null,
+        score1: 0, score2: 0,
+        winnerId: null, matchId: null,
+      },
+      monsterCombat: {
+        monsterId: null,
+        maxHP: 0, currentHP: 0,
+        combatantIds: [],
+        combatantScores: {},
+        isLegendary: false,
+      },
+      tournament: {
+        phase: 'pre',
+        seeds: [], rounds: [],
+        championId: null,
+      },
+    };
+  }
 
   function initState() {
     const saved = loadState();
-    state = saved || JSON.parse(JSON.stringify(DEFAULT_STATE));
+    state = saved || defaultState();
+    if (!state.monsterCombat) state.monsterCombat = defaultState().monsterCombat;
+    // Migrate old saves that used separate day/night decks
+    if (!state.game.eventDeck) {
+      state.game.eventDeck = [];
+      state.game.eventIndex = 0;
+    }
   }
 
   // ─── Navigation ───────────────────────────────────────────
@@ -156,39 +171,36 @@
   }
 
   function renderAll() {
-    // Sky
     document.body.setAttribute('data-time', state.game.timeOfDay);
 
-    // Show correct screen
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    const screenMap = {
-      setup:      'screen-setup',
-      game:       'screen-game',
-      duel:       'screen-duel',
-      tournament: 'screen-tournament',
-      champion:   'screen-tournament', // champion phase shown within tournament screen
+    const map = {
+      setup:          'screen-setup',
+      game:           'screen-game',
+      duel:           'screen-duel',
+      monsterCombat:  'screen-monster-combat',
+      tournament:     'screen-tournament',
+      champion:       'screen-tournament',
     };
-    const screenId = screenMap[state.phase] || 'screen-setup';
-    const screen = document.getElementById(screenId);
-    if (screen) screen.classList.add('active');
+    const id = map[state.phase] || 'screen-setup';
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
 
-    // Render the active screen
     switch (state.phase) {
-      case 'setup':      renderSetup();      break;
-      case 'game':       renderGame();       break;
-      case 'duel':       renderDuel();       break;
-      case 'tournament': renderTournament(); break;
+      case 'setup':         renderSetup(); break;
+      case 'game':          renderGame(); break;
+      case 'duel':          renderDuel(); break;
+      case 'monsterCombat': renderMonsterCombat(); break;
+      case 'tournament':    renderTournament(); break;
     }
   }
 
-  // ─── SETUP SCREEN ─────────────────────────────────────────
+  // ─── SETUP ────────────────────────────────────────────────
 
   function renderSetup() {
-    // Sync options checkboxes
-    document.getElementById('opt-monsters').checked  = state.options.digitalMonsters;
-    document.getElementById('opt-events').checked    = state.options.digitalEvents;
+    document.getElementById('opt-monsters').checked = state.options.digitalMonsters;
+    document.getElementById('opt-events').checked   = state.options.digitalEvents;
     document.getElementById('opt-tracking').checked  = state.options.fullTracking;
-
     renderPlayerSlots();
     updateStartButton();
   }
@@ -196,85 +208,59 @@
   function renderPlayerSlots() {
     const container = document.getElementById('player-slots');
     container.innerHTML = '';
-
     const usedCharIds = state.players.map(p => p.characterId);
 
     state.players.forEach((player, idx) => {
       const div = document.createElement('div');
       div.className = 'player-slot';
-
       div.innerHTML = `
         <span class="player-slot-num">${idx + 1}</span>
-        <input
-          type="text"
-          class="player-name-input"
-          placeholder="Nombre"
-          maxlength="20"
-          value="${escHtml(player.name)}"
-          data-idx="${idx}"
-        />
+        <input type="text" class="player-name-input" placeholder="Nombre" maxlength="20"
+          value="${escHtml(player.name)}" data-idx="${idx}" />
         <select class="character-select" data-idx="${idx}">
           <option value="">— Clase —</option>
           ${CHARACTERS.map(c => {
             const taken = usedCharIds.includes(c.id) && c.id !== player.characterId;
-            return `<option value="${c.id}" ${c.id === player.characterId ? 'selected' : ''} ${taken ? 'disabled' : ''}>${c.emoji} ${c.name} (${c.class})</option>`;
+            return `<option value="${c.id}" ${c.id === player.characterId ? 'selected' : ''} ${taken ? 'disabled' : ''}>${c.emoji} ${c.name}</option>`;
           }).join('')}
         </select>
         <button class="btn-remove-player" data-idx="${idx}" ${state.players.length <= 3 ? 'disabled' : ''}>✕</button>
       `;
-
       container.appendChild(div);
     });
 
-    // Add player button
     document.getElementById('btn-add-player').style.display =
       state.players.length >= 6 ? 'none' : 'inline-flex';
   }
 
-  function escHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function updateStartButton() {
-    const allValid = state.players.length >= 3 &&
+    const valid = state.players.length >= 3 &&
       state.players.every(p => p.name.trim() !== '' && p.characterId !== '');
     const charIds = state.players.map(p => p.characterId);
     const unique = new Set(charIds).size === charIds.length;
-    document.getElementById('btn-start').disabled = !(allValid && unique);
+    document.getElementById('btn-start').disabled = !(valid && unique);
   }
 
   function startGame() {
-    const playerCount = state.players.length;
-
-    // Init player stats
     state.players = state.players.map((p, i) => {
       const char = getChar(p.characterId);
       const maxMana = char ? char.maxMana : 4;
-      return {
-        ...p,
-        id: i,
-        gold: 0,
-        mana: maxMana,
-        maxMana,
-        equipment: [],
-      };
+      return { ...p, id: i, gold: 0, mana: maxMana, maxMana, equipment: [] };
     });
 
-    // Build decks
+    // Build the combined event deck and draw the first card
+    const eventDeck = buildCombinedEventDeck();
+    const firstEvent = eventDeck[0];
+    const isDay = firstEvent && firstEvent.type === 'day';
+
     state.game = {
-      currentDay: 1,
-      timeOfDay: 'day',
+      eventDeck,
+      eventIndex: 0,
+      currentDay: isDay ? 1 : 0,
+      timeOfDay: firstEvent ? firstEvent.type : 'day',
       monsterDeck: buildMonsterDeck(),
       monsterDeckIndex: 0,
       monsterDefeated: false,
-      dayEventDeck: buildEventDeck(DAY_EVENTS),
-      dayEventIndex: 0,
-      nightEventDeck: buildEventDeck(NIGHT_EVENTS),
-      nightEventIndex: 0,
       pendingNotifications: [],
     };
 
@@ -283,32 +269,33 @@
 
   // ─── GAME SCREEN ──────────────────────────────────────────
 
+  /** Get current event from the combined deck */
+  function currentEvent() {
+    const g = state.game;
+    const entry = g.eventDeck[g.eventIndex];
+    if (!entry) return null;
+    const events = entry.type === 'day' ? DAY_EVENTS : NIGHT_EVENTS;
+    const ev = events.find(e => e.id === entry.eventId);
+    return ev ? { ...ev, type: entry.type } : null;
+  }
+
   function renderGame() {
     const g = state.game;
     const isDay = g.timeOfDay === 'day';
+    const ev = currentEvent();
 
     // Header
     const label = isDay
       ? `☀️ Día ${g.currentDay} / 12`
-      : `🌙 Noche ${g.currentDay} / 12`;
+      : `🌙 Noche`;
     document.getElementById('game-day-label').textContent = label;
+    document.getElementById('btn-advance').textContent = 'Avanzar';
 
-    // Advance button label
-    let advLabel;
-    if (isDay) {
-      advLabel = 'Noche ▶';
-    } else if (g.currentDay >= 12) {
-      advLabel = 'Torneo ▶';
-    } else {
-      advLabel = `Día ${g.currentDay + 1} ▶`;
-    }
-    document.getElementById('btn-advance').textContent = advLabel;
+    // Event card — always show if digitalEvents is on
+    renderEventCard(ev);
 
-    // Event card
-    renderEventCard();
-
-    // Monster section
-    renderMonsterSection();
+    // Monster section — only on day + digitalMonsters
+    renderMonsterSection(ev);
 
     // Players
     renderPlayerCards();
@@ -317,58 +304,37 @@
     flushNotifications();
   }
 
-  function renderEventCard() {
-    const g = state.game;
-    const isDay = g.timeOfDay === 'day';
-    const eventSection = document.getElementById('event-section');
+  function renderEventCard(ev) {
+    const section = document.getElementById('event-section');
 
-    if (!state.options.digitalEvents) {
-      eventSection.style.display = 'none';
+    if (!ev) {
+      section.style.display = 'none';
       return;
     }
 
-    const deckEvents  = isDay ? DAY_EVENTS   : NIGHT_EVENTS;
-    const deckIds     = isDay ? g.dayEventDeck : g.nightEventDeck;
-    const deckIdx     = isDay ? g.dayEventIndex : g.nightEventIndex;
-
-    const currentEventId = deckIds[deckIdx] ?? deckIds[0];
-    if (currentEventId == null) { eventSection.style.display = 'none'; return; }
-
-    const ev = deckEvents.find(e => e.id === currentEventId);
-    if (!ev) { eventSection.style.display = 'none'; return; }
-
-    document.getElementById('event-badge').textContent = isDay ? 'DÍA' : 'NOCHE';
+    document.getElementById('event-badge').textContent = ev.type === 'day' ? 'DÍA' : 'NOCHE';
     document.getElementById('event-name').textContent  = ev.name;
     document.getElementById('event-effect').textContent = ev.effect;
-
-    eventSection.style.display = 'block';
+    section.style.display = 'block';
   }
 
-  function currentDayEvent() {
-    const g = state.game;
-    const id = g.dayEventDeck[g.dayEventIndex];
-    return DAY_EVENTS.find(e => e.id === id) || null;
-  }
-
-  function renderMonsterSection() {
+  function renderMonsterSection(ev) {
     const g = state.game;
     const section = document.getElementById('monster-section');
 
+    // Only show during day + digital monsters
     if (!state.options.digitalMonsters || g.timeOfDay !== 'day') {
-      section.style.display = 'none';
-      return;
+      section.style.display = 'none'; return;
     }
 
-    // Check if mazmorra cerrada
-    const ev = currentDayEvent();
+    // Mazmorra Cerrada — hide monster
     if (ev && ev.name === 'Mazmorra Cerrada') {
-      section.style.display = 'none';
-      return;
+      section.style.display = 'none'; return;
     }
 
+    // Already dealt with this day's monster
     if (g.monsterDefeated) {
-      section.style.display = 'none';
-      return;
+      section.style.display = 'none'; return;
     }
 
     const monsterId = g.monsterDeck[g.monsterDeckIndex];
@@ -378,64 +344,200 @@
     if (!monster) { section.style.display = 'none'; return; }
 
     const isLegendary = ev && ev.name === 'Monstruo Legendario';
-    const playerCount  = state.players.length;
-    const hp = computeHP(monster, playerCount, isLegendary);
+    const hp = computeHPDisplay(monster, state.players.length, isLegendary);
 
     document.getElementById('monster-img').src = monster.image;
     document.getElementById('monster-img').alt = monster.name;
     document.getElementById('monster-name').textContent = monster.name + (isLegendary ? ' ⚡' : '');
-    const tierBadge = document.getElementById('monster-tier-badge');
-    tierBadge.textContent = monster.tier.charAt(0).toUpperCase() + monster.tier.slice(1);
-    tierBadge.className = `tier-badge ${monster.tier}`;
+    const badge = document.getElementById('monster-tier-badge');
+    badge.textContent = monster.tier.charAt(0).toUpperCase() + monster.tier.slice(1);
+    badge.className = `tier-badge ${monster.tier}`;
     document.getElementById('monster-hp').textContent     = hp;
     document.getElementById('monster-ability').textContent = monster.ability;
-    document.getElementById('monster-reward').textContent  = isLegendary
-      ? monster.reward + ' (×2 por legendario)'
-      : monster.reward;
+    document.getElementById('monster-reward').textContent  = isLegendary ? monster.reward + ' (x2)' : monster.reward;
     document.getElementById('monster-penalty').textContent = monster.penalty;
 
     section.style.display = 'block';
   }
 
-  function defeatMonster() {
+  // ─── MONSTER COMBAT ───────────────────────────────────────
+
+  function openMonsterCombat() {
     const g = state.game;
     const monsterId = g.monsterDeck[g.monsterDeckIndex];
     if (monsterId == null) return;
 
     const monster = getMonster(monsterId);
-    const tierBefore = monster ? monster.tier : null;
+    if (!monster) return;
 
-    g.monsterDefeated = true;
-    g.monsterDeckIndex++;
+    const ev = currentEvent();
+    const isLegendary = ev && ev.name === 'Monstruo Legendario';
+    const maxHP = computeHP(monster, state.players.length, isLegendary);
 
-    // Tier completion check
-    if (tierBefore) {
-      checkTierCompletion(g.monsterDeck, g.monsterDeckIndex, tierBefore);
+    state.monsterCombat = {
+      monsterId,
+      maxHP: maxHP || 0,
+      currentHP: maxHP || 0,
+      combatantIds: [],
+      combatantScores: {},
+      isLegendary,
+    };
+
+    saveState();
+    navigateTo('monsterCombat');
+  }
+
+  function renderMonsterCombat() {
+    const mc = state.monsterCombat;
+    const monster = getMonster(mc.monsterId);
+    if (!monster) return;
+
+    document.getElementById('mc-monster-img').src = monster.image;
+    document.getElementById('mc-monster-name').textContent = monster.name + (mc.isLegendary ? ' ⚡' : '');
+    const badge = document.getElementById('mc-tier-badge');
+    badge.textContent = monster.tier.charAt(0).toUpperCase() + monster.tier.slice(1);
+    badge.className = `tier-badge ${monster.tier}`;
+
+    // HP bar
+    const pct = mc.maxHP > 0 ? Math.max(0, mc.currentHP / mc.maxHP * 100) : 0;
+    document.getElementById('mc-hp-current').textContent = Math.max(0, mc.currentHP);
+    document.getElementById('mc-hp-max').textContent     = mc.maxHP || 'Especial';
+    const bar = document.getElementById('mc-hp-bar');
+    bar.style.width = pct + '%';
+    bar.classList.toggle('low', pct < 30);
+
+    // Combatant toggles
+    const toggleDiv = document.getElementById('mc-combatant-toggle');
+    toggleDiv.innerHTML = '';
+    for (const p of state.players) {
+      const char = getChar(p.characterId);
+      const checked = mc.combatantIds.includes(p.id);
+      const label = document.createElement('label');
+      label.className = checked ? 'selected' : '';
+      label.innerHTML = `
+        <input type="checkbox" data-pid="${p.id}" ${checked ? 'checked' : ''} />
+        ${char?.emoji ?? ''} ${escHtml(p.name)}
+      `;
+      toggleDiv.appendChild(label);
     }
 
+    // Combatant score rows
+    const listDiv = document.getElementById('mc-combatant-list');
+    listDiv.innerHTML = '';
+    for (const pid of mc.combatantIds) {
+      const p = state.players.find(pl => pl.id === pid);
+      if (!p) continue;
+      const char = getChar(p.characterId);
+      const score = mc.combatantScores[pid] || 0;
+      const row = document.createElement('div');
+      row.className = 'combatant-row';
+      row.innerHTML = `
+        <span class="combatant-name">${char?.emoji ?? ''} ${escHtml(p.name)}</span>
+        <div class="combatant-score">
+          <button class="hold-btn mc-dec" data-pid="${pid}">−</button>
+          <span class="combatant-value" id="mc-score-${pid}">${score}</span>
+          <button class="hold-btn mc-inc" data-pid="${pid}">+</button>
+        </div>
+      `;
+      listDiv.appendChild(row);
+    }
+
+    // Attach listeners
+    listDiv.querySelectorAll('.mc-inc').forEach(btn => {
+      attachHoldButton(btn, () => adjustCombatantScore(parseInt(btn.dataset.pid), 1));
+    });
+    listDiv.querySelectorAll('.mc-dec').forEach(btn => {
+      attachHoldButton(btn, () => adjustCombatantScore(parseInt(btn.dataset.pid), -1));
+    });
+
+    toggleDiv.querySelectorAll('input').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const pid = parseInt(cb.dataset.pid);
+        if (cb.checked) {
+          if (!mc.combatantIds.includes(pid)) mc.combatantIds.push(pid);
+          if (!mc.combatantScores[pid]) mc.combatantScores[pid] = 0;
+        } else {
+          mc.combatantIds = mc.combatantIds.filter(id => id !== pid);
+          delete mc.combatantScores[pid];
+        }
+        saveState();
+        recalcMonsterHP();
+        renderMonsterCombat();
+      });
+    });
+  }
+
+  function adjustCombatantScore(pid, delta) {
+    const mc = state.monsterCombat;
+    mc.combatantScores[pid] = Math.max(0, (mc.combatantScores[pid] || 0) + delta);
+    recalcMonsterHP();
+    saveState();
+
+    const el = document.getElementById(`mc-score-${pid}`);
+    if (el) el.textContent = mc.combatantScores[pid];
+
+    const pct = mc.maxHP > 0 ? Math.max(0, mc.currentHP / mc.maxHP * 100) : 0;
+    document.getElementById('mc-hp-current').textContent = Math.max(0, mc.currentHP);
+    const bar = document.getElementById('mc-hp-bar');
+    bar.style.width = pct + '%';
+    bar.classList.toggle('low', pct < 30);
+  }
+
+  function recalcMonsterHP() {
+    const mc = state.monsterCombat;
+    let totalDmg = 0;
+    for (const pid of mc.combatantIds) totalDmg += (mc.combatantScores[pid] || 0);
+    mc.currentHP = mc.maxHP - totalDmg;
+  }
+
+  function endMonsterCombat() {
+    const mc = state.monsterCombat;
+    const g = state.game;
+    const defeated = mc.currentHP <= 0;
+
+    if (defeated) {
+      const monster = getMonster(mc.monsterId);
+      const tier = monster ? monster.tier : null;
+
+      g.monsterDefeated = true;
+      g.monsterDeckIndex++;
+
+      if (tier) checkTierCompletion(g.monsterDeck, g.monsterDeckIndex, tier);
+
+      showModal('Monstruo Derrotado', 'El monstruo ha sido vencido.', [
+        { label: 'OK', primary: true, action: () => navigateTo('game') },
+      ]);
+    } else {
+      showModal('Combate Fallido', 'El grupo no logró derrotar al monstruo. Se aplica la penitencia.', [
+        { label: 'OK', primary: true, action: () => navigateTo('game') },
+      ]);
+    }
+    saveState();
+  }
+
+  function skipMonster() {
+    state.game.monsterDefeated = true;
     saveState();
     renderGame();
   }
 
   function checkTierCompletion(deck, currentIdx, tier) {
-    // Find all monster IDs of this tier in the deck
-    const tierIds = deck.filter(id => {
-      const m = getMonster(id);
-      return m && m.tier === tier;
-    });
-
-    // Find the highest index of a tier monster
-    let maxTierIdx = -1;
-    for (const id of tierIds) {
-      const idx = deck.indexOf(id);
-      if (idx > maxTierIdx) maxTierIdx = idx;
+    const tierIndices = [];
+    for (let i = 0; i < deck.length; i++) {
+      const m = getMonster(deck[i]);
+      if (m && m.tier === tier) tierIndices.push(i);
     }
-
-    // All defeated if we've passed the last tier monster
+    const maxTierIdx = Math.max(...tierIndices);
     if (currentIdx > maxTierIdx && maxTierIdx >= 0) {
-      state.game.pendingNotifications.push(`¡Todos los monstruos ${tier} derrotados! +1 máximo de maná a todos`);
+      state.game.pendingNotifications.push(`¡Tier ${tier} completado! +1 maná máximo a todos`);
+      for (const p of state.players) {
+        p.maxMana++;
+        p.mana = Math.min(p.mana + 1, p.maxMana);
+      }
     }
   }
+
+  // ─── PLAYER CARDS ─────────────────────────────────────────
 
   function renderPlayerCards() {
     const container = document.getElementById('players-scroll');
@@ -453,29 +555,31 @@
       `;
 
       if (state.options.fullTracking) {
-        // Gold row
         html += `
           <div class="tracking-row">
-            <span class="tracking-label">💰 Oro</span>
+            <span class="tracking-label">Oro</span>
             <button class="hold-btn gold-dec" data-pid="${player.id}">−</button>
             <span class="gold-value" id="gold-${player.id}">${player.gold}</span>
             <button class="hold-btn gold-inc" data-pid="${player.id}">+</button>
           </div>
         `;
 
-        // Mana tokens
         html += `
-          <div class="tracking-row">
-            <span class="tracking-label">🔮 Maná</span>
+          <div class="mana-row">
+            <span class="tracking-label">Maná</span>
             <div class="mana-tokens" id="mana-${player.id}">
-              ${Array.from({ length: player.maxMana }, (_, i) => `
-                <span class="mana-token ${i < player.mana ? 'filled' : ''}" data-pid="${player.id}" data-idx="${i}"></span>
-              `).join('')}
+              ${Array.from({ length: player.maxMana }, (_, i) =>
+                `<span class="mana-token ${i < player.mana ? 'filled' : ''}" data-pid="${player.id}" data-idx="${i}"></span>`
+              ).join('')}
+            </div>
+            <div class="mana-max-controls">
+              <button class="hold-btn mana-max-dec" data-pid="${player.id}">−</button>
+              <span class="mana-max-label">${player.maxMana}</span>
+              <button class="hold-btn mana-max-inc" data-pid="${player.id}">+</button>
             </div>
           </div>
         `;
 
-        // Equipment chips
         html += `
           <div class="equipment-chips" id="equip-${player.id}">
             ${player.equipment.map(eqId => {
@@ -496,44 +600,33 @@
       container.appendChild(card);
     }
 
-    // Attach hold-to-repeat for gold buttons
     if (state.options.fullTracking) {
       container.querySelectorAll('.gold-inc').forEach(btn => {
-        const pid = parseInt(btn.dataset.pid);
-        attachHoldButton(btn, () => adjustGold(pid, 1));
+        attachHoldButton(btn, () => adjustGold(parseInt(btn.dataset.pid), 1));
       });
       container.querySelectorAll('.gold-dec').forEach(btn => {
-        const pid = parseInt(btn.dataset.pid);
-        attachHoldButton(btn, () => adjustGold(pid, -1));
+        attachHoldButton(btn, () => adjustGold(parseInt(btn.dataset.pid), -1));
       });
-
-      // Mana tokens tap
       container.querySelectorAll('.mana-token').forEach(token => {
         token.addEventListener('click', () => {
-          const pid = parseInt(token.dataset.pid);
-          const idx = parseInt(token.dataset.idx);
-          toggleMana(pid, idx);
+          toggleMana(parseInt(token.dataset.pid), parseInt(token.dataset.idx));
         });
       });
-
-      // Equipment remove
+      container.querySelectorAll('.mana-max-inc').forEach(btn => {
+        btn.addEventListener('click', () => adjustMaxMana(parseInt(btn.dataset.pid), 1));
+      });
+      container.querySelectorAll('.mana-max-dec').forEach(btn => {
+        btn.addEventListener('click', () => adjustMaxMana(parseInt(btn.dataset.pid), -1));
+      });
       container.querySelectorAll('.equipment-chips button').forEach(btn => {
         btn.addEventListener('click', () => {
-          const pid  = parseInt(btn.dataset.pid);
-          const eqid = parseInt(btn.dataset.eqid);
-          removeEquipment(pid, eqid);
+          removeEquipment(parseInt(btn.dataset.pid), parseInt(btn.dataset.eqid));
         });
       });
-
-      // Equipment add select
       container.querySelectorAll('.equipment-add-select').forEach(sel => {
         sel.addEventListener('change', () => {
-          const pid  = parseInt(sel.dataset.pid);
           const eqid = parseInt(sel.value);
-          if (eqid) {
-            addEquipment(pid, eqid);
-            sel.value = '';
-          }
+          if (eqid) { addEquipment(parseInt(sel.dataset.pid), eqid); sel.value = ''; }
         });
       });
     }
@@ -551,20 +644,23 @@
   function toggleMana(pid, idx) {
     const p = state.players.find(p => p.id === pid);
     if (!p) return;
-    // Toggle: if slot filled, set mana to idx (drain), else fill to idx+1
-    if (idx < p.mana) {
-      p.mana = idx; // drain back to idx
-    } else {
-      p.mana = idx + 1; // fill up to idx+1
-    }
+    p.mana = idx < p.mana ? idx : idx + 1;
     saveState();
-    // Re-render mana tokens
     const container = document.getElementById(`mana-${pid}`);
     if (container) {
-      container.querySelectorAll('.mana-token').forEach((token, i) => {
-        token.classList.toggle('filled', i < p.mana);
+      container.querySelectorAll('.mana-token').forEach((t, i) => {
+        t.classList.toggle('filled', i < p.mana);
       });
     }
+  }
+
+  function adjustMaxMana(pid, delta) {
+    const p = state.players.find(p => p.id === pid);
+    if (!p) return;
+    p.maxMana = Math.max(1, p.maxMana + delta);
+    p.mana = Math.min(p.mana, p.maxMana);
+    saveState();
+    renderPlayerCards();
   }
 
   function addEquipment(pid, eqId) {
@@ -589,62 +685,63 @@
   function advanceTime() {
     const g = state.game;
 
-    if (g.timeOfDay === 'day') {
-      // Day → Night
-      // Check mazmorra cerrada: auto-skip monster
-      const ev = currentDayEvent();
-      if (ev && ev.name === 'Mazmorra Cerrada' && !g.monsterDefeated) {
-        g.monsterDefeated = true;
-      }
+    // If current event is day + Mazmorra Cerrada, auto-skip monster
+    const ev = currentEvent();
+    if (ev && ev.type === 'day' && ev.name === 'Mazmorra Cerrada' && !g.monsterDefeated) {
+      g.monsterDefeated = true;
+      g.monsterDeckIndex++;
+    }
 
-      g.timeOfDay = 'night';
-      // Draw night event
-      if (state.options.digitalEvents) {
-        g.nightEventIndex = Math.min(g.nightEventIndex, g.nightEventDeck.length - 1);
-      }
-      g.nightEventIndex = (g.nightEventIndex === 0 && g.timeOfDay === 'night' && g.currentDay > 1)
-        ? g.nightEventIndex
-        : g.nightEventIndex;
-      // Advance day event index for next day
-      // (we show the same event all day, advance on night)
+    // Check if 12 days have been reached and we're advancing past
+    if (g.currentDay >= 12 && g.timeOfDay === 'day') {
+      // Move to tournament after the 12th day
+      state.tournament = {
+        phase: 'pre',
+        seeds: state.players.map(p => ({ playerId: p.id, seedRank: null })),
+        rounds: [],
+        championId: null,
+      };
+      saveState();
+      navigateTo('tournament');
+      return;
+    }
 
-    } else {
-      // Night → ?
-      if (g.currentDay >= 12) {
-        // Night 12 → Tournament
-        state.tournament = {
-          phase: 'pre',
-          seeds: state.players.map(p => ({
-            playerId: p.id,
-            seedRank: null,
-          })),
-          rounds: [],
-          championId: null,
-        };
-        saveState();
-        navigateTo('tournament');
-        return;
-      } else {
-        // Night → new Day
-        g.currentDay++;
-        g.timeOfDay = 'day';
-        g.monsterDefeated = false;
-        g.dayEventIndex = Math.min(g.dayEventIndex + 1, g.dayEventDeck.length - 1);
-        g.nightEventIndex = Math.min(g.nightEventIndex + 1, g.nightEventDeck.length - 1);
-      }
+    // Draw next event from the combined deck
+    g.eventIndex++;
+    if (g.eventIndex >= g.eventDeck.length) {
+      // Deck exhausted — go to tournament
+      state.tournament = {
+        phase: 'pre',
+        seeds: state.players.map(p => ({ playerId: p.id, seedRank: null })),
+        rounds: [],
+        championId: null,
+      };
+      saveState();
+      navigateTo('tournament');
+      return;
+    }
+
+    const nextEntry = g.eventDeck[g.eventIndex];
+    g.timeOfDay = nextEntry.type;
+
+    if (nextEntry.type === 'day') {
+      g.currentDay++;
+      g.monsterDefeated = false;
+
+      // If day count hits 12, this is the last day — still show it
+      // Tournament transition happens on next "Avanzar" click (handled above)
     }
 
     saveState();
-    renderGame();
+    renderAll();
   }
 
   // ─── NOTIFICATIONS ────────────────────────────────────────
 
   function flushNotifications() {
     const queue = state.game.pendingNotifications;
-    if (queue.length === 0) return;
-    const msg = queue[0];
-    showModal('Notificación', msg, [
+    if (!queue || queue.length === 0) return;
+    showModal('Notificación', queue[0], [
       { label: 'OK', primary: true, action: () => {
         state.game.pendingNotifications.shift();
         saveState();
@@ -672,7 +769,6 @@
       });
       actionsEl.appendChild(el);
     }
-
     overlay.style.display = 'flex';
   }
 
@@ -680,16 +776,14 @@
     document.getElementById('modal-overlay').style.display = 'none';
   }
 
-  // ─── DUEL SCREEN ──────────────────────────────────────────
+  // ─── DUEL ─────────────────────────────────────────────────
 
-  function openDuel(matchId = null) {
+  function openDuel(matchId) {
     state.duel = {
       player1Id: state.players[0]?.id ?? null,
       player2Id: state.players[1]?.id ?? null,
-      score1: 0,
-      score2: 0,
-      winnerId: null,
-      matchId,
+      score1: 0, score2: 0,
+      winnerId: null, matchId: matchId || null,
     };
     saveState();
     navigateTo('duel');
@@ -697,20 +791,12 @@
 
   function renderDuel() {
     const d = state.duel;
-    const sel1 = document.getElementById('duel-select-1');
-    const sel2 = document.getElementById('duel-select-2');
-
-    // Populate selects
-    populateDuelSelect(sel1, d.player2Id, d.player1Id);
-    populateDuelSelect(sel2, d.player1Id, d.player2Id);
-
+    populateDuelSelect(document.getElementById('duel-select-1'), d.player2Id, d.player1Id);
+    populateDuelSelect(document.getElementById('duel-select-2'), d.player1Id, d.player2Id);
     updateFighterPanel(1);
     updateFighterPanel(2);
-
-    // Reset winner classes
     document.getElementById('fighter-1').classList.remove('winner');
     document.getElementById('fighter-2').classList.remove('winner');
-
     document.getElementById('score-1').textContent = d.score1;
     document.getElementById('score-2').textContent = d.score2;
   }
@@ -721,7 +807,8 @@
       if (p.id === excludeId) continue;
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = `${getChar(p.characterId)?.emoji ?? '🎮'} ${p.name}`;
+      const char = getChar(p.characterId);
+      opt.textContent = `${char?.emoji ?? ''} ${p.name}`;
       if (p.id === selectedId) opt.selected = true;
       sel.appendChild(opt);
     }
@@ -729,85 +816,65 @@
 
   function updateFighterPanel(num) {
     const d = state.duel;
-    const pid  = num === 1 ? d.player1Id : d.player2Id;
-    const p    = state.players.find(pl => pl.id === pid);
+    const pid = num === 1 ? d.player1Id : d.player2Id;
+    const p = state.players.find(pl => pl.id === pid);
     const char = p ? getChar(p.characterId) : null;
     document.getElementById(`fighter-${num}-name`).textContent = p ? p.name : '—';
     document.getElementById(`fighter-${num}-char`).textContent = char ? `${char.emoji} ${char.class}` : '';
   }
 
-  function duelSelectScore(num) {
-    const el = document.getElementById(`score-${num}`);
-    const raw = el.textContent.replace(/[^\d-]/g, '');
-    return parseInt(raw) || 0;
+  function getDuelScore(num) {
+    return parseInt(document.getElementById(`score-${num}`).textContent.replace(/[^\d]/g, '')) || 0;
   }
 
   function setDuelScore(num, val) {
-    const el = document.getElementById(`score-${num}`);
-    el.textContent = Math.max(0, val);
-    if (num === 1) state.duel.score1 = Math.max(0, val);
-    else           state.duel.score2 = Math.max(0, val);
+    val = Math.max(0, val);
+    document.getElementById(`score-${num}`).textContent = val;
+    if (num === 1) state.duel.score1 = val; else state.duel.score2 = val;
     saveState();
   }
 
   function declareWinner() {
-    const s1 = duelSelectScore(1);
-    const s2 = duelSelectScore(2);
-
+    const s1 = getDuelScore(1), s2 = getDuelScore(2);
     if (s1 === s2) {
-      showModal('Empate', 'Las puntuaciones están empatadas. ¡Desempaten en físico!', [
-        { label: 'OK', primary: true },
-      ]);
+      showModal('Empate', 'Las puntuaciones están empatadas.', [{ label: 'OK', primary: true }]);
       return;
     }
 
-    const winnerNum = s1 > s2 ? 1 : 2;
-    const loserNum  = winnerNum === 1 ? 2 : 1;
+    const winNum = s1 > s2 ? 1 : 2;
+    const loseNum = winNum === 1 ? 2 : 1;
+    document.getElementById(`fighter-${winNum}`).classList.add('winner');
+    document.getElementById(`fighter-${loseNum}`).classList.remove('winner');
 
-    document.getElementById(`fighter-${winnerNum}`).classList.add('winner');
-    document.getElementById(`fighter-${loserNum}`).classList.remove('winner');
-
-    const winnerId = winnerNum === 1 ? state.duel.player1Id : state.duel.player2Id;
-    const loserId  = winnerNum === 1 ? state.duel.player2Id : state.duel.player1Id;
+    const winnerId = winNum === 1 ? state.duel.player1Id : state.duel.player2Id;
+    const loserId  = winNum === 1 ? state.duel.player2Id : state.duel.player1Id;
     state.duel.winnerId = winnerId;
     saveState();
 
-    // Nyra gold steal
     const winner = state.players.find(p => p.id === winnerId);
     const loser  = state.players.find(p => p.id === loserId);
     if (state.options.fullTracking && winner?.characterId === 'nyra' && loser) {
-      showModal(
-        '⚔️ Habilidad de Nyra',
-        `¿Nyra roba 7 de oro a ${loser.name}?`,
-        [
-          { label: 'Sí', primary: true, action: () => {
-            const stolen = Math.min(7, loser.gold);
-            loser.gold  = Math.max(0, loser.gold  - stolen);
-            winner.gold = winner.gold + stolen;
-            saveState();
-            handlePostDuel(winnerId);
-          }},
-          { label: 'No', primary: false, action: () => handlePostDuel(winnerId) },
-        ]
-      );
+      showModal('Habilidad de Nyra', `¿Nyra roba 7 de oro a ${loser.name}?`, [
+        { label: 'Sí', primary: true, action: () => {
+          const stolen = Math.min(7, loser.gold);
+          loser.gold -= stolen; winner.gold += stolen;
+          saveState(); handlePostDuel(winnerId);
+        }},
+        { label: 'No', primary: false, action: () => handlePostDuel(winnerId) },
+      ]);
       return;
     }
-
     handlePostDuel(winnerId);
   }
 
   function handlePostDuel(winnerId) {
-    const matchId = state.duel.matchId;
-    if (matchId) {
-      recordMatchResult(matchId, winnerId);
-    }
+    if (state.duel.matchId) recordMatchResult(state.duel.matchId, winnerId);
   }
 
-  // ─── TOURNAMENT SCREEN ────────────────────────────────────
+  // ─── TOURNAMENT ───────────────────────────────────────────
 
   function renderTournament() {
     const t = state.tournament;
-
     document.getElementById('tournament-pre').style.display      = t.phase === 'pre'      ? 'block' : 'none';
     document.getElementById('tournament-bracket').style.display  = t.phase === 'bracket'  ? 'block' : 'none';
     document.getElementById('tournament-champion').style.display = t.phase === 'champion' ? 'block' : 'none';
@@ -818,265 +885,113 @@
   }
 
   function renderTournamentPre() {
-    // Gold conversion table
-    const goldTable = document.getElementById('gold-conversion-table');
-    goldTable.style.display = state.options.fullTracking ? 'block' : 'none';
+    document.getElementById('gold-conversion-table').style.display =
+      state.options.fullTracking ? 'block' : 'none';
 
-    // Seed rolls list
     const list = document.getElementById('seed-rolls-list');
     list.innerHTML = '';
-    const t = state.tournament;
-
-    for (const seed of t.seeds) {
+    for (const seed of state.tournament.seeds) {
       const p = state.players.find(pl => pl.id === seed.playerId);
       if (!p) continue;
       const char = getChar(p.characterId);
       const item = document.createElement('div');
       item.className = 'seed-roll-item';
-
-      const rankHtml = seed.seedRank != null
-        ? `<span class="seed-rank-badge">${seed.seedRank}</span>`
-        : `<span class="text-muted">—</span>`;
-
-      item.innerHTML = `
-        <span>${char?.emoji ?? '🎮'} ${escHtml(p.name)}</span>
-        ${rankHtml}
-      `;
+      item.innerHTML = `<span>${char?.emoji ?? ''} ${escHtml(p.name)}</span>`;
       list.appendChild(item);
     }
-
-    document.getElementById('btn-generate-bracket').disabled = !t.seeds.every(s => s.seedRank != null);
   }
 
-  function randomizeSeeds() {
+  function startTournament() {
     const t = state.tournament;
     const order = shuffle(t.seeds.map((_, i) => i));
-    order.forEach((originalIdx, rank) => {
-      t.seeds[originalIdx].seedRank = rank + 1;
-    });
-    saveState();
-    renderTournamentPre();
-  }
+    order.forEach((origIdx, rank) => { t.seeds[origIdx].seedRank = rank + 1; });
 
-  function generateBracket() {
-    const t = state.tournament;
+    const sorted = t.seeds.slice().sort((a, b) => a.seedRank - b.seedRank);
+    const seeds = sorted.map(s => s.playerId);
     const n = state.players.length;
 
-    // Sort seeds by rank asc
-    const sorted = t.seeds.slice().sort((a, b) => a.seedRank - b.seedRank);
-    const seeds  = sorted.map(s => s.playerId);
-
-    let rounds = [];
     switch (n) {
-      case 3: rounds = buildBracket3p(seeds); break;
-      case 4: rounds = buildBracket4p(seeds); break;
-      case 5: rounds = buildBracket5p(seeds); break;
-      case 6: rounds = buildBracket6p(seeds); break;
-      default: rounds = buildBracket4p(seeds.slice(0, 4)); break;
+      case 3: t.rounds = buildBracket3p(seeds); break;
+      case 4: t.rounds = buildBracket4p(seeds); break;
+      case 5: t.rounds = buildBracket5p(seeds); break;
+      case 6: t.rounds = buildBracket6p(seeds); break;
+      default: t.rounds = buildBracket4p(seeds.slice(0, 4)); break;
     }
 
-    t.rounds    = rounds;
-    t.phase     = 'bracket';
+    t.phase = 'bracket';
     saveState();
     renderTournament();
   }
 
-  function mid(prefix, n) { return `${prefix}${n}`; }
-
-  // 3p: Semi (s2 vs s3) → Final (s1 vs winner)
-  function buildBracket3p(seeds) {
-    const [s1, s2, s3] = seeds;
+  function buildBracket3p(s) {
     return [
-      {
-        name: 'Semifinal',
-        matches: [{
-          id: 'sf1',
-          player1Id: s2,
-          player2Id: s3,
-          advantagePlayerId: s2,
-          winnerId: null,
-          feedsFrom: [null, null],
-        }],
-      },
-      {
-        name: 'Final',
-        matches: [{
-          id: 'final',
-          player1Id: s1,
-          player2Id: null,
-          advantagePlayerId: s1,
-          winnerId: null,
-          feedsFrom: [null, { matchId: 'sf1', slot: 2 }],
-        }],
-      },
+      { name: 'Semifinal', matches: [
+        { id: 'sf1', player1Id: s[1], player2Id: s[2], advantagePlayerId: s[1], winnerId: null, feedsFrom: [null, null] },
+      ]},
+      { name: 'Final', matches: [
+        { id: 'final', player1Id: s[0], player2Id: null, advantagePlayerId: s[0], winnerId: null, feedsFrom: [null, { matchId: 'sf1', slot: 2 }] },
+      ]},
     ];
   }
 
-  // 4p: Semi1 (s1 vs s4) + Semi2 (s2 vs s3) → Final
-  function buildBracket4p(seeds) {
-    const [s1, s2, s3, s4] = seeds;
+  function buildBracket4p(s) {
     return [
-      {
-        name: 'Semifinal',
-        matches: [
-          {
-            id: 'sf1',
-            player1Id: s1,
-            player2Id: s4,
-            advantagePlayerId: s1,
-            winnerId: null,
-            feedsFrom: [null, null],
-          },
-          {
-            id: 'sf2',
-            player1Id: s2,
-            player2Id: s3,
-            advantagePlayerId: s2,
-            winnerId: null,
-            feedsFrom: [null, null],
-          },
-        ],
-      },
-      {
-        name: 'Final',
-        matches: [{
-          id: 'final',
-          player1Id: null,
-          player2Id: null,
-          advantagePlayerId: null,
-          winnerId: null,
-          feedsFrom: [{ matchId: 'sf1', slot: 1 }, { matchId: 'sf2', slot: 1 }],
-        }],
-      },
+      { name: 'Semifinal', matches: [
+        { id: 'sf1', player1Id: s[0], player2Id: s[3], advantagePlayerId: s[0], winnerId: null, feedsFrom: [null, null] },
+        { id: 'sf2', player1Id: s[1], player2Id: s[2], advantagePlayerId: s[1], winnerId: null, feedsFrom: [null, null] },
+      ]},
+      { name: 'Final', matches: [
+        { id: 'final', player1Id: null, player2Id: null, advantagePlayerId: null, winnerId: null, feedsFrom: [{ matchId: 'sf1', slot: 1 }, { matchId: 'sf2', slot: 1 }] },
+      ]},
     ];
   }
 
-  // 5p: QF (s4 vs s5) → Semi (s2 vs winner, s3 vs s4-bye) → Final (s1 vs semi winner)
-  function buildBracket5p(seeds) {
-    const [s1, s2, s3, s4, s5] = seeds;
+  function buildBracket5p(s) {
     return [
-      {
-        name: 'Cuartos',
-        matches: [{
-          id: 'qf1',
-          player1Id: s4,
-          player2Id: s5,
-          advantagePlayerId: s4,
-          winnerId: null,
-          feedsFrom: [null, null],
-        }],
-      },
-      {
-        name: 'Semifinal',
-        matches: [
-          {
-            id: 'sf1',
-            player1Id: s2,
-            player2Id: null,
-            advantagePlayerId: s2,
-            winnerId: null,
-            feedsFrom: [null, { matchId: 'qf1', slot: 1 }],
-          },
-          {
-            id: 'sf2',
-            player1Id: s3,
-            player2Id: null,
-            advantagePlayerId: s3,
-            winnerId: null,
-            feedsFrom: [null, { matchId: 'qf1', slot: 1 }],
-          },
-        ],
-      },
-      {
-        name: 'Final',
-        matches: [{
-          id: 'final',
-          player1Id: s1,
-          player2Id: null,
-          advantagePlayerId: s1,
-          winnerId: null,
-          feedsFrom: [null, { matchId: 'sf1', slot: 1 }],
-        }],
-      },
+      { name: 'Cuartos', matches: [
+        { id: 'qf1', player1Id: s[3], player2Id: s[4], advantagePlayerId: s[3], winnerId: null, feedsFrom: [null, null] },
+      ]},
+      { name: 'Semifinal', matches: [
+        { id: 'sf1', player1Id: s[1], player2Id: null, advantagePlayerId: s[1], winnerId: null, feedsFrom: [null, { matchId: 'qf1', slot: 1 }] },
+        { id: 'sf2', player1Id: s[2], player2Id: null, advantagePlayerId: s[2], winnerId: null, feedsFrom: [null, { matchId: 'qf1', slot: 1 }] },
+      ]},
+      { name: 'Final', matches: [
+        { id: 'final', player1Id: s[0], player2Id: null, advantagePlayerId: s[0], winnerId: null, feedsFrom: [null, { matchId: 'sf1', slot: 1 }] },
+      ]},
     ];
   }
 
-  // 6p: QF1(s1vs2) QF2(s3vs4) QF3(s5vs6) → Semi(QF2w vs QF3w) → Final(QF1w vs semiwinner)
-  function buildBracket6p(seeds) {
-    const [s1, s2, s3, s4, s5, s6] = seeds;
+  function buildBracket6p(s) {
     return [
-      {
-        name: 'Cuartos',
-        matches: [
-          {
-            id: 'qf1',
-            player1Id: s1,
-            player2Id: s2,
-            advantagePlayerId: s1,
-            winnerId: null,
-            feedsFrom: [null, null],
-          },
-          {
-            id: 'qf2',
-            player1Id: s3,
-            player2Id: s4,
-            advantagePlayerId: s3,
-            winnerId: null,
-            feedsFrom: [null, null],
-          },
-          {
-            id: 'qf3',
-            player1Id: s5,
-            player2Id: s6,
-            advantagePlayerId: s5,
-            winnerId: null,
-            feedsFrom: [null, null],
-          },
-        ],
-      },
-      {
-        name: 'Semifinal',
-        matches: [{
-          id: 'sf1',
-          player1Id: null,
-          player2Id: null,
-          advantagePlayerId: null,
-          winnerId: null,
-          feedsFrom: [{ matchId: 'qf2', slot: 1 }, { matchId: 'qf3', slot: 1 }],
-        }],
-      },
-      {
-        name: 'Final',
-        matches: [{
-          id: 'final',
-          player1Id: null,
-          player2Id: null,
-          advantagePlayerId: null,
-          winnerId: null,
-          feedsFrom: [{ matchId: 'qf1', slot: 1 }, { matchId: 'sf1', slot: 1 }],
-        }],
-      },
+      { name: 'Cuartos', matches: [
+        { id: 'qf1', player1Id: s[0], player2Id: s[1], advantagePlayerId: s[0], winnerId: null, feedsFrom: [null, null] },
+        { id: 'qf2', player1Id: s[2], player2Id: s[3], advantagePlayerId: s[2], winnerId: null, feedsFrom: [null, null] },
+        { id: 'qf3', player1Id: s[4], player2Id: s[5], advantagePlayerId: s[4], winnerId: null, feedsFrom: [null, null] },
+      ]},
+      { name: 'Semifinal', matches: [
+        { id: 'sf1', player1Id: null, player2Id: null, advantagePlayerId: null, winnerId: null, feedsFrom: [{ matchId: 'qf2', slot: 1 }, { matchId: 'qf3', slot: 1 }] },
+      ]},
+      { name: 'Final', matches: [
+        { id: 'final', player1Id: null, player2Id: null, advantagePlayerId: null, winnerId: null, feedsFrom: [{ matchId: 'qf1', slot: 1 }, { matchId: 'sf1', slot: 1 }] },
+      ]},
     ];
   }
 
   function findMatch(matchId) {
-    for (const round of state.tournament.rounds) {
-      for (const match of round.matches) {
-        if (match.id === matchId) return match;
-      }
+    for (const r of state.tournament.rounds) {
+      for (const m of r.matches) { if (m.id === matchId) return m; }
     }
     return null;
   }
 
   function propagateWinner(matchId, winnerId) {
-    // Find all matches that have a feedsFrom referencing this matchId
-    for (const round of state.tournament.rounds) {
-      for (const match of round.matches) {
+    for (const r of state.tournament.rounds) {
+      for (const m of r.matches) {
         for (let slot = 0; slot < 2; slot++) {
-          const feed = match.feedsFrom[slot];
-          if (feed && feed.matchId === matchId) {
-            if (slot === 0) match.player1Id = winnerId;
-            else            match.player2Id = winnerId;
+          const f = m.feedsFrom[slot];
+          if (f && f.matchId === matchId) {
+            if (slot === 0) m.player1Id = winnerId;
+            else            m.player2Id = winnerId;
           }
         }
       }
@@ -1084,8 +999,10 @@
   }
 
   function recordMatchResult(matchId, winnerId) {
+    const match = findMatch(matchId);
+    if (match) match.winnerId = winnerId;
+
     if (matchId === 'final') {
-      // Champion!
       state.tournament.championId = winnerId;
       state.tournament.phase = 'champion';
       saveState();
@@ -1093,14 +1010,8 @@
       return;
     }
 
-    const match = findMatch(matchId);
-    if (!match) return;
-    match.winnerId = winnerId;
-
     propagateWinner(matchId, winnerId);
     saveState();
-
-    // Return to tournament bracket
     navigateTo('tournament');
   }
 
@@ -1114,59 +1025,47 @@
       roundEl.innerHTML = `<div class="bracket-round-name">${round.name}</div>`;
 
       for (const match of round.matches) {
-        const matchEl = document.createElement('div');
-        matchEl.className = 'bracket-match';
+        const el = document.createElement('div');
+        el.className = 'bracket-match';
 
         const p1 = state.players.find(p => p.id === match.player1Id);
         const p2 = state.players.find(p => p.id === match.player2Id);
         const c1 = p1 ? getChar(p1.characterId) : null;
         const c2 = p2 ? getChar(p2.characterId) : null;
 
-        const advP = state.players.find(p => p.id === match.advantagePlayerId);
-
-        const slot1Html = p1
-          ? `<div class="match-player-name">${c1?.emoji ?? ''} ${escHtml(p1.name)}</div>${match.advantagePlayerId === p1.id ? '<div class="match-advantage">⭐ Ventaja</div>' : ''}`
+        const s1 = p1
+          ? `<div class="match-player-name">${c1?.emoji ?? ''} ${escHtml(p1.name)}</div>${match.advantagePlayerId === p1.id ? '<div class="match-advantage">Ventaja</div>' : ''}`
+          : `<div class="match-player-tbd">Por determinar</div>`;
+        const s2 = p2
+          ? `<div class="match-player-name">${c2?.emoji ?? ''} ${escHtml(p2.name)}</div>${match.advantagePlayerId === p2.id ? '<div class="match-advantage">Ventaja</div>' : ''}`
           : `<div class="match-player-tbd">Por determinar</div>`;
 
-        const slot2Html = p2
-          ? `<div class="match-player-name">${c2?.emoji ?? ''} ${escHtml(p2.name)}</div>${match.advantagePlayerId === p2.id ? '<div class="match-advantage">⭐ Ventaja</div>' : ''}`
-          : `<div class="match-player-tbd">Por determinar</div>`;
-
-        let rightHtml = '';
+        let right = '';
         if (match.winnerId != null) {
-          const winner = state.players.find(p => p.id === match.winnerId);
-          rightHtml = `<span class="match-winner-badge">🏆 ${winner ? escHtml(winner.name) : ''}</span>`;
+          const w = state.players.find(p => p.id === match.winnerId);
+          right = `<span class="match-winner-badge">🏆 ${w ? escHtml(w.name) : ''}</span>`;
         } else if (p1 && p2) {
-          rightHtml = `<button class="btn btn-sm btn-primary match-btn" data-matchid="${match.id}">⚔️ Pelear</button>`;
+          right = `<button class="btn btn-sm btn-primary match-btn" data-matchid="${match.id}">Pelear</button>`;
         }
 
-        matchEl.innerHTML = `
-          <div class="match-slot">${slot1Html}</div>
+        el.innerHTML = `
+          <div class="match-slot">${s1}</div>
           <span class="match-vs">VS</span>
-          <div class="match-slot">${slot2Html}</div>
-          ${rightHtml}
+          <div class="match-slot">${s2}</div>
+          ${right}
         `;
-
-        roundEl.appendChild(matchEl);
+        roundEl.appendChild(el);
       }
-
       container.appendChild(roundEl);
     }
 
-    // Attach fight buttons
     container.querySelectorAll('.match-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const matchId = btn.dataset.matchid;
-        const match   = findMatch(matchId);
+        const match = findMatch(btn.dataset.matchid);
         if (!match) return;
-
         state.duel = {
-          player1Id: match.player1Id,
-          player2Id: match.player2Id,
-          score1: 0,
-          score2: 0,
-          winnerId: null,
-          matchId,
+          player1Id: match.player1Id, player2Id: match.player2Id,
+          score1: 0, score2: 0, winnerId: null, matchId: match.id,
         };
         state.previousPhase = 'tournament';
         saveState();
@@ -1176,212 +1075,134 @@
   }
 
   function renderChampion() {
-    const pid    = state.tournament.championId;
-    const p      = state.players.find(pl => pl.id === pid);
-    const char   = p ? getChar(p.characterId) : null;
-
+    const p = state.players.find(pl => pl.id === state.tournament.championId);
+    const char = p ? getChar(p.characterId) : null;
     document.getElementById('champion-name').textContent = p ? p.name : '???';
     document.getElementById('champion-char').textContent = char ? `${char.emoji} ${char.class}` : '';
-
     spawnConfetti();
   }
 
   function spawnConfetti() {
-    const container = document.getElementById('confetti-container');
-    container.innerHTML = '';
-
-    const colors = ['#c9a84c','#7b5ea7','#e05252','#4caf84','#87ceeb','#ff9800','#ffffff'];
+    const c = document.getElementById('confetti-container');
+    c.innerHTML = '';
+    const colors = ['#c9a84c','#7b5ea7','#e05252','#4caf84','#87ceeb','#ff9800','#fff'];
     for (let i = 0; i < 80; i++) {
       const p = document.createElement('div');
       p.className = 'confetti-particle';
-      p.style.left     = `${Math.random() * 100}vw`;
-      p.style.top      = `-${Math.random() * 20 + 10}px`;
+      p.style.left = `${Math.random() * 100}vw`;
+      p.style.top = `-${Math.random() * 20 + 10}px`;
       p.style.background = colors[Math.floor(Math.random() * colors.length)];
-      p.style.animationDuration  = `${1.5 + Math.random() * 2.5}s`;
-      p.style.animationDelay     = `${Math.random() * 2}s`;
-      p.style.width  = `${5 + Math.floor(Math.random() * 8)}px`;
+      p.style.animationDuration = `${1.5 + Math.random() * 2.5}s`;
+      p.style.animationDelay = `${Math.random() * 2}s`;
+      p.style.width = `${5 + Math.floor(Math.random() * 8)}px`;
       p.style.height = `${5 + Math.floor(Math.random() * 8)}px`;
-      container.appendChild(p);
+      c.appendChild(p);
     }
   }
 
   // ─── EVENT LISTENERS ──────────────────────────────────────
 
   function attachListeners() {
-
-    // ── Options toggles
     document.getElementById('opt-monsters').addEventListener('change', e => {
-      state.options.digitalMonsters = e.target.checked;
-      saveState();
+      state.options.digitalMonsters = e.target.checked; saveState();
     });
     document.getElementById('opt-events').addEventListener('change', e => {
-      state.options.digitalEvents = e.target.checked;
-      saveState();
+      state.options.digitalEvents = e.target.checked; saveState();
     });
     document.getElementById('opt-tracking').addEventListener('change', e => {
-      state.options.fullTracking = e.target.checked;
-      saveState();
+      state.options.fullTracking = e.target.checked; saveState();
     });
 
-    // ── Add player
     document.getElementById('btn-add-player').addEventListener('click', () => {
       if (state.players.length >= 6) return;
       state.players.push({ id: state.players.length, name: '', characterId: '', gold: 0, mana: 4, maxMana: 4, equipment: [] });
-      saveState();
-      renderPlayerSlots();
-      updateStartButton();
+      saveState(); renderPlayerSlots(); updateStartButton();
     });
 
-    // ── Player slot events (delegated)
     document.getElementById('player-slots').addEventListener('input', e => {
       if (e.target.classList.contains('player-name-input')) {
-        const idx = parseInt(e.target.dataset.idx);
-        state.players[idx].name = e.target.value;
-        saveState();
-        updateStartButton();
+        state.players[parseInt(e.target.dataset.idx)].name = e.target.value;
+        saveState(); updateStartButton();
       }
     });
-
     document.getElementById('player-slots').addEventListener('change', e => {
       if (e.target.classList.contains('character-select')) {
-        const idx = parseInt(e.target.dataset.idx);
-        state.players[idx].characterId = e.target.value;
-        saveState();
-        renderPlayerSlots(); // re-render to disable taken chars in other selects
-        updateStartButton();
+        state.players[parseInt(e.target.dataset.idx)].characterId = e.target.value;
+        saveState(); renderPlayerSlots(); updateStartButton();
       }
     });
-
     document.getElementById('player-slots').addEventListener('click', e => {
       const btn = e.target.closest('.btn-remove-player');
-      if (!btn) return;
-      const idx = parseInt(btn.dataset.idx);
-      if (state.players.length <= 3) return;
-      state.players.splice(idx, 1);
-      // Re-number IDs
+      if (!btn || state.players.length <= 3) return;
+      state.players.splice(parseInt(btn.dataset.idx), 1);
       state.players.forEach((p, i) => p.id = i);
-      saveState();
-      renderPlayerSlots();
-      updateStartButton();
+      saveState(); renderPlayerSlots(); updateStartButton();
     });
 
-    // ── Start game
-    document.getElementById('btn-start').addEventListener('click', () => {
-      startGame();
-    });
+    document.getElementById('btn-start').addEventListener('click', startGame);
+    document.getElementById('btn-advance').addEventListener('click', advanceTime);
+    document.getElementById('btn-fight-monster').addEventListener('click', openMonsterCombat);
+    document.getElementById('btn-skip-monster').addEventListener('click', skipMonster);
+    document.getElementById('btn-monster-combat-back').addEventListener('click', () => navigateTo('game'));
+    document.getElementById('btn-end-combat').addEventListener('click', endMonsterCombat);
 
-    // ── Advance time
-    document.getElementById('btn-advance').addEventListener('click', () => {
-      advanceTime();
-    });
-
-    // ── Defeat monster
-    document.getElementById('btn-defeat-monster').addEventListener('click', () => {
-      defeatMonster();
-    });
-
-    // ── Floating duel button
     document.getElementById('btn-duel-float').addEventListener('click', () => {
-      state.previousPhase = 'game';
-      saveState();
-      openDuel(null);
+      state.previousPhase = 'game'; saveState(); openDuel(null);
     });
-
-    // ── Duel back
     document.getElementById('btn-duel-back').addEventListener('click', () => {
       navigateTo(state.previousPhase || 'game');
     });
 
-    // ── Duel player selects
     document.getElementById('duel-select-1').addEventListener('change', e => {
-      state.duel.player1Id = parseInt(e.target.value);
-      saveState();
+      state.duel.player1Id = parseInt(e.target.value); saveState();
       updateFighterPanel(1);
-      populateDuelSelect(
-        document.getElementById('duel-select-2'),
-        state.duel.player1Id,
-        state.duel.player2Id
-      );
+      populateDuelSelect(document.getElementById('duel-select-2'), state.duel.player1Id, state.duel.player2Id);
     });
-
     document.getElementById('duel-select-2').addEventListener('change', e => {
-      state.duel.player2Id = parseInt(e.target.value);
-      saveState();
+      state.duel.player2Id = parseInt(e.target.value); saveState();
       updateFighterPanel(2);
-      populateDuelSelect(
-        document.getElementById('duel-select-1'),
-        state.duel.player2Id,
-        state.duel.player1Id
-      );
+      populateDuelSelect(document.getElementById('duel-select-1'), state.duel.player2Id, state.duel.player1Id);
     });
 
-    // ── Score buttons hold-to-repeat
     document.querySelectorAll('.score-btn').forEach(btn => {
-      const fighter = parseInt(btn.dataset.fighter);
-      const isInc   = btn.classList.contains('score-inc');
-      attachHoldButton(btn, () => {
-        const cur = duelSelectScore(fighter);
-        setDuelScore(fighter, cur + (isInc ? 1 : -1));
-      });
+      const f = parseInt(btn.dataset.fighter);
+      const inc = btn.classList.contains('score-inc');
+      attachHoldButton(btn, () => setDuelScore(f, getDuelScore(f) + (inc ? 1 : -1)));
     });
 
-    // ── Score contenteditable sanitize
     [1, 2].forEach(num => {
       const el = document.getElementById(`score-${num}`);
       el.addEventListener('input', () => {
-        const raw = el.textContent.replace(/[^\d]/g, '');
-        const val = parseInt(raw) || 0;
-        if (num === 1) state.duel.score1 = val;
-        else           state.duel.score2 = val;
+        const val = parseInt(el.textContent.replace(/[^\d]/g, '')) || 0;
+        if (num === 1) state.duel.score1 = val; else state.duel.score2 = val;
         saveState();
       });
-      el.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
-      });
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
     });
 
-    // ── Declare winner
-    document.getElementById('btn-declare-winner').addEventListener('click', () => {
-      declareWinner();
-    });
-
-    // ── Reset duel
+    document.getElementById('btn-declare-winner').addEventListener('click', declareWinner);
     document.getElementById('btn-reset-duel').addEventListener('click', () => {
-      state.duel.score1 = 0;
-      state.duel.score2 = 0;
-      state.duel.winnerId = null;
-      saveState();
+      state.duel.score1 = 0; state.duel.score2 = 0; state.duel.winnerId = null; saveState();
       document.getElementById('score-1').textContent = '0';
       document.getElementById('score-2').textContent = '0';
       document.getElementById('fighter-1').classList.remove('winner');
       document.getElementById('fighter-2').classList.remove('winner');
     });
 
-    // ── Tournament: randomize seeds
-    document.getElementById('btn-randomize-seeds').addEventListener('click', () => {
-      randomizeSeeds();
-    });
+    document.getElementById('btn-start-tournament').addEventListener('click', startTournament);
 
-    // ── Tournament: generate bracket
-    document.getElementById('btn-generate-bracket').addEventListener('click', () => {
-      generateBracket();
-    });
-
-    // ── New game
     document.getElementById('btn-new-game').addEventListener('click', () => {
       try { localStorage.removeItem('tornaris_state'); } catch (_) {}
       location.reload();
     });
 
-    // ── Modal overlay click outside = dismiss (for notification modals only)
     document.getElementById('modal-overlay').addEventListener('click', e => {
       if (e.target === document.getElementById('modal-overlay')) {
-        // Only close if there's a single OK button (notifications)
         const actions = document.getElementById('modal-actions');
         if (actions.children.length === 1) {
           closeModal();
           const queue = state.game.pendingNotifications;
-          if (queue.length > 0) queue.shift();
+          if (queue && queue.length > 0) queue.shift();
           saveState();
         }
       }
@@ -1393,7 +1214,6 @@
   function init() {
     initState();
 
-    // Ensure players array has at least 3 slots on setup
     if (state.phase === 'setup' && state.players.length < 3) {
       state.players = [];
       for (let i = 0; i < 3; i++) {
@@ -1406,5 +1226,4 @@
   }
 
   document.addEventListener('DOMContentLoaded', init);
-
 })();

@@ -3,7 +3,10 @@
     "allow": [
       "Bash(python:*)",
       "Bash(node --version:*)",
-      "Bash(git -C \"F:/Users/Migue/Desktop/Proyectos Personales/tornaris\" log --oneline --all)"
+      "Bash(git -C \"F:/Users/Migue/Desktop/Proyectos Personales/tornaris\" log --oneline --all)",
+      "Bash(cd \"F:/Users/Migue/Desktop/Proyectos Personales/tornaris\" && gh run list --limit 5 2>&1)",
+      "Bash(where gh:*)",
+      "Bash(cd:*)"
     ]
   }
 }

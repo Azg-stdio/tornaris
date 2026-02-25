@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#1a0a2e" />
+  <meta name="theme-color" content="#120826" />
   <title>Tornaris</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body data-time="day">
 
-  <!-- Sky background (fixed, z-index 0) -->
+  <!-- Sky background -->
   <div class="sky-layer" aria-hidden="true">
     <div class="sky-sun"></div>
     <div class="sky-moon"></div>
@@ -20,37 +20,33 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SCREEN: SETUP
-  ═══════════════════════════════════════════════ -->
+  <!-- SCREEN: SETUP -->
   <section id="screen-setup" class="screen active">
     <div class="screen-inner">
       <header class="setup-header">
-        <h1 class="logo">⚔️ Tornaris</h1>
+        <h1 class="logo">Tornaris</h1>
         <p class="logo-sub">Compañero de Partida</p>
       </header>
 
-      <!-- Options toggles -->
       <div class="card options-card">
         <h2 class="card-title">Opciones</h2>
         <label class="toggle-row">
-          <span class="toggle-label">🐉 Monstruos Digitales</span>
+          <span class="toggle-label">Monstruos Digitales</span>
           <input type="checkbox" id="opt-monsters" role="switch" />
           <span class="toggle-track"><span class="toggle-thumb"></span></span>
         </label>
         <label class="toggle-row">
-          <span class="toggle-label">🌟 Eventos Digitales</span>
+          <span class="toggle-label">Eventos Digitales</span>
           <input type="checkbox" id="opt-events" role="switch" />
           <span class="toggle-track"><span class="toggle-thumb"></span></span>
         </label>
         <label class="toggle-row">
-          <span class="toggle-label">📊 Tracking Completo</span>
+          <span class="toggle-label">Tracking Completo</span>
           <input type="checkbox" id="opt-tracking" role="switch" />
           <span class="toggle-track"><span class="toggle-thumb"></span></span>
         </label>
       </div>
 
-      <!-- Players -->
       <div class="card players-card">
         <h2 class="card-title">Jugadores</h2>
         <div id="player-slots"></div>
@@ -61,51 +57,81 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════
-       SCREEN: GAME
-  ═══════════════════════════════════════════════ -->
+  <!-- SCREEN: GAME -->
   <section id="screen-game" class="screen">
     <div class="screen-inner">
-      <!-- Header -->
       <header class="game-header">
         <div id="game-day-label" class="day-label"></div>
-        <button id="btn-advance" class="btn btn-primary btn-sm">Avanzar ▶</button>
+        <button id="btn-advance" class="btn btn-primary btn-sm">Avanzar</button>
       </header>
 
-      <!-- Event card -->
       <div id="event-section" class="card event-card" style="display:none">
         <div class="event-badge" id="event-badge">DÍA</div>
         <div class="event-name" id="event-name"></div>
         <div class="event-effect" id="event-effect"></div>
       </div>
 
-      <!-- Monster section -->
       <div id="monster-section" class="card monster-card" style="display:none">
         <div class="monster-inner">
           <img id="monster-img" src="" alt="" class="monster-image" />
           <div class="monster-info">
             <div class="monster-name" id="monster-name"></div>
             <span id="monster-tier-badge" class="tier-badge"></span>
-            <div class="monster-stat"><span class="stat-label">❤️ Vida</span> <span id="monster-hp"></span></div>
-            <div class="monster-stat"><span class="stat-label">✨ Habilidad</span> <span id="monster-ability"></span></div>
-            <div class="monster-stat"><span class="stat-label">🏆 Recompensa</span> <span id="monster-reward"></span></div>
-            <div class="monster-stat"><span class="stat-label">💀 Penitencia</span> <span id="monster-penalty"></span></div>
+            <div class="monster-stat"><span class="stat-label">Vida:</span> <span id="monster-hp"></span></div>
+            <div class="monster-stat"><span class="stat-label">Habilidad:</span> <span id="monster-ability"></span></div>
+            <div class="monster-stat"><span class="stat-label">Recompensa:</span> <span id="monster-reward"></span></div>
+            <div class="monster-stat"><span class="stat-label">Penitencia:</span> <span id="monster-penalty"></span></div>
           </div>
         </div>
-        <button id="btn-defeat-monster" class="btn btn-accent btn-sm" style="margin-top:0.5rem">✅ Monstruo Derrotado</button>
+        <div class="monster-actions">
+          <button id="btn-fight-monster" class="btn btn-primary btn-sm" style="flex:1">Combatir</button>
+          <button id="btn-skip-monster" class="btn btn-ghost btn-sm">Omitir</button>
+        </div>
       </div>
 
-      <!-- Players horizontal scroll -->
       <div id="players-scroll" class="players-scroll"></div>
     </div>
 
-    <!-- Floating duel button -->
     <button id="btn-duel-float" class="fab" title="Duelo">⚔️</button>
   </section>
 
-  <!-- ═══════════════════════════════════════════════
-       SCREEN: DUEL
-  ═══════════════════════════════════════════════ -->
+  <!-- SCREEN: MONSTER COMBAT -->
+  <section id="screen-monster-combat" class="screen">
+    <div class="screen-inner">
+      <header class="monster-combat-header">
+        <button id="btn-monster-combat-back" class="btn btn-ghost btn-sm">← Volver</button>
+        <h2>Combate de Mazmorra</h2>
+      </header>
+
+      <div class="card">
+        <div class="monster-combat-info">
+          <img id="mc-monster-img" src="" alt="" class="monster-combat-img" />
+          <div class="monster-combat-name" id="mc-monster-name"></div>
+          <span id="mc-tier-badge" class="tier-badge"></span>
+        </div>
+
+        <div class="hp-bar-container">
+          <div class="hp-bar-label">
+            <span>Vida</span>
+            <strong><span id="mc-hp-current"></span> / <span id="mc-hp-max"></span></strong>
+          </div>
+          <div class="hp-bar-track">
+            <div class="hp-bar-fill" id="mc-hp-bar"></div>
+          </div>
+        </div>
+
+        <div class="card-title" style="margin-top:0.5rem">Combatientes</div>
+        <div class="combatant-toggle" id="mc-combatant-toggle"></div>
+        <div class="combatant-list" id="mc-combatant-list"></div>
+      </div>
+
+      <div class="monster-combat-actions">
+        <button id="btn-end-combat" class="btn btn-primary">Terminar Combate</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN: DUEL -->
   <section id="screen-duel" class="screen">
     <div class="screen-inner">
       <header class="duel-header">
@@ -113,14 +139,12 @@
         <h2>Duelo</h2>
       </header>
 
-      <!-- Player selectors -->
       <div class="duel-selectors">
         <select id="duel-select-1" class="duel-select"></select>
         <span class="vs-badge">VS</span>
         <select id="duel-select-2" class="duel-select"></select>
       </div>
 
-      <!-- Fighter panels -->
       <div class="duel-fighters">
         <div class="fighter-panel" id="fighter-1">
           <div class="fighter-name" id="fighter-1-name">Jugador 1</div>
@@ -131,7 +155,6 @@
             <button class="score-btn score-inc" data-fighter="1" aria-label="Sumar">+</button>
           </div>
         </div>
-
         <div class="fighter-panel" id="fighter-2">
           <div class="fighter-name" id="fighter-2-name">Jugador 2</div>
           <div class="fighter-char" id="fighter-2-char"></div>
@@ -145,23 +168,19 @@
 
       <div class="duel-actions">
         <button id="btn-declare-winner" class="btn btn-primary">Declarar Ganador</button>
-        <button id="btn-reset-duel" class="btn btn-secondary">↺ Reiniciar</button>
+        <button id="btn-reset-duel" class="btn btn-secondary">Reiniciar</button>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════
-       SCREEN: TOURNAMENT
-  ═══════════════════════════════════════════════ -->
+  <!-- SCREEN: TOURNAMENT -->
   <section id="screen-tournament" class="screen">
     <div class="screen-inner">
       <header class="tournament-header">
-        <h2>🏆 Torneo Final</h2>
+        <h2>Torneo Final</h2>
       </header>
 
-      <!-- Pre phase -->
       <div id="tournament-pre" style="display:none">
-        <!-- Gold conversion table (full tracking only) -->
         <div id="gold-conversion-table" class="card" style="display:none">
           <h3 class="card-title">Conversión de Oro</h3>
           <table class="conversion-table">
@@ -175,20 +194,17 @@
         </div>
 
         <div class="card">
-          <h3 class="card-title">Orden del Torneo</h3>
-          <p class="card-hint">Se asignará un orden aleatorio a los jugadores para el bracket.</p>
+          <h3 class="card-title">Jugadores del Torneo</h3>
           <div id="seed-rolls-list"></div>
-          <button id="btn-randomize-seeds" class="btn btn-secondary">🔀 Aleatorizar Orden</button>
-          <button id="btn-generate-bracket" class="btn btn-primary" style="margin-top:0.5rem" disabled>Generar Bracket</button>
         </div>
+
+        <button id="btn-start-tournament" class="btn btn-primary btn-lg">Comenzar Torneo</button>
       </div>
 
-      <!-- Bracket phase -->
       <div id="tournament-bracket" style="display:none">
         <div id="bracket-rounds"></div>
       </div>
 
-      <!-- Champion phase -->
       <div id="tournament-champion" style="display:none">
         <div id="confetti-container" aria-hidden="true"></div>
         <div class="champion-banner">
@@ -202,9 +218,7 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════
-       MODAL (notifications + prompts)
-  ═══════════════════════════════════════════════ -->
+  <!-- MODAL -->
   <div id="modal-overlay" class="modal-overlay" style="display:none" role="dialog" aria-modal="true">
     <div class="modal-box">
       <div class="modal-title" id="modal-title"></div>
