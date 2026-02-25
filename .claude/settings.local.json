@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(node --version:*)",
+      "Bash(git -C \"F:/Users/Migue/Desktop/Proyectos Personales/tornaris\" log --oneline --all)"
+    ]
+  }
+}

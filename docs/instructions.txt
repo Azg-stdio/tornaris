@@ -1,0 +1,126 @@
+Quiero crear una página interactiva para ayudar a contabilizar, a crear el torneo final, y otros QoL para jugadores de mi juego de mesa Tornaris, debe funcionar bien especialmente en celulares en modo portrait o landscape y que mantenga el progreso incluso ssi se recarga la página
+
+- Interactive UI, light weight, cool animations
+
+- Menú inicial, debe tener un espacio para lista de personas según clase (Cada persona es 1 jugador) hasta máximo 6, osea una forma de poner Pedro será la Druida, y Jorge el Nigromante, Y Tulio x
+
+Personaje	Clase	Pasiva	Objetos Iniciales
+Celeste	Druida	Empieza con 1 de maná adicional permanente.	2x Poción de Maná
+Skull	Nigromante	Al entrar a cualquier combate puede tomar 1 equipamiento aleatorio de la baraja de descarte (Si existe). Debe devolverlo al finalizar el combate.	2x Portal de Bolsillo
+Remi	Hombre Topo	Todas las compras en la tienda valen 2 monedas menos. Al sacar un 6 en cualquier lanzamiento de dado gana 3 de oro.	2x Cuervo Mensajero
+Baltazar	Mago	Una vez por combate puede repetir uno de sus dados.	2x Cristal Vidente
+Braulia	Escudera	Tiene 8 espacios de equipamiento en vez de 6.	2x Invocación de Familiar
+Nyra	Cazadora	Al ganar un combate contra un jugador le roba 7 de oro (Adicional si hay otro tipo de recompensa).	2x Guante del Duelo
+
+- Una opción booleana de "Monstruos", esto hará que se controlé a través de la web, y no a través de las cartas físicas, si queda activo al empezar el día se mostrará el monstruo con su efecto, recompensa y penitencia, y calculo de vida (5x cantidad de jugadores totales por ejemplo)
+
+ID	Monstruo	Categoría	Vida	Jugadores mínimos	Recompensa (combatientes)	Habilidad	Penitencia (combatientes)
+1	Grumo	Duende	3x	1	5 de oro	El primer combatiente lanza un dado, se suma esa cantidad a la vida del monstruo.	2 de oro
+2	Diablillo	Duende	4x	1	1 equipamiento aleatorio	Todos los combatientes repiten su dado más alto una vez.	3 de oro
+3	Mímico	Duende	4x	1	10 de oro	El monstruo gana el combate automáticamente si van TODOS los jugadores.	4 de oro
+4	Sirena	Duende	5x	1	1 equipamiento aleatorio	Si la Sirena es derrotada, todos los jugadores que no participaron pierden 2 de oro.	3 de oro
+5	Esqueleto Guerrero	Duende	5x	1	1 equipamiento aleatorio	Si el grupo falla en derrotarlo, el monstruo reaparece el siguiente turno con la misma vida.	2 de oro
+6	Troll	Ogro	8x	1	1 equipamiento aleatorio + 5 de oro	El combatiente con el dado más bajo no recibe recompensa.	4 de oro
+7	Sombra Acechante	Ogro	5x	1	1 equipamiento aleatorio + 3 de oro	El jugador con el primer turno en el combate juega por el monstruo: lanza 2 dados por cada otro combatiente y suma ese total a la vida del monstruo. Si el monstruo gana, ese jugador recibe la recompensa. Si pierde, sufre la penitencia.	4 de oro + descarta 1 equipamiento
+8	Bruja	Ogro	8x	1	1 equipamiento aleatorio	Los jugadores no pueden usar equipamientos, pero cada combatiente lanza 3 dados en vez de 2.	4 de oro
+9	Hongo Alien	Ogro	6x	1	1 equipamiento aleatorio	Al ser derrotado, cada combatiente lanza un dado y gana ese resultado en oro.	Cada combatiente lanza un dado y pierde rese resultado en oro.
+10	Horda Zombie	Ogro	4x	2	2 equipamientos aleatorios + 8 de oro	El monstruo gana +3 de vida por cada jugador que no participe en el combate.	5 de oro
+11	Basilisco de Fuego	Gólem	7x	2	2 equipamientos aleatorios + 8 de oro	El combatiente con el total más bajo es forzado a descansar la noche siguiente.	4 de oro
+12	Cocatriz	Gólem	7x	2	2 equipamientos aleatorios + 10 de oro	Cualquier combatiente con resultado total de 8 o menos no recibe recompensa.	5 de oro
+13	Musgo Viviente	Gólem	7x	2	2 equipamientos aleatorios + 10 de oro	Después del combate, el mejor lanzador recibe 2 monedas de cada combatiente.	6 de oro
+14	Dullahan	Gólem	8x	2	2 equipamientos aleatorios + 12 de oro	Si el monstruo es derrotado, el jugador con más oro pierde 10 monedas.	6 de oro
+15	Rey Nigromante	Gólem	8x	2	2 equipamientos aleatorios + 12 de oro	Al ser derrotado, deben hacerlo de nuevo con vida de 5 x combatiente y sin equipamientos.	Descarta 1 equipamiento
+16	Polilla Gigante	Dragón	-	2	2 equipamientos aleatorios + 14 de oro	Cada combatiente elige en secreto: adelante ayuda a la Polilla, hacia sí mismo ayuda al grupo. Cada bando suma sus dados y el mayor total gana. Si solo hay 1 jugador, toma una carta de evento en vez de pelear. En caso de empate, el monstruo gana.	10 de oro
+17	Gigante de Hielo	Dragón	7x	3	3 equipamientos aleatorios + 15 de oro	En vez de lanzar los dados normalmente, todos los combatientes empiezan con 1 en ambos dados y solo pueden modificarlos con equipamientos.	6 de oro y el peor lanzador descarta 1 equipamiento
+18	Balrog "Señor Abisal"	Dragón	8x	3	1 maná adicional	Para participar en este combate, debes hacer una ofrenda. Lanza un dado: 1-3 sacrificas 1 equipamiento a elección, 4-6 sacrificas 15 de oro. Si no puedes pagar, no puedes participar.	10 de oro y el peor lanzador descarta 1 equipamiento
+19	Dragón Terrestre	Dragón	15	3	1 maná adicional + 10 de oro	Cada jugador debe vencerlo individualmente.	10 de oro y el peor lanzador pierde 1 maná adicional permanentemente
+20	Rey de los Cielos	Dragón	10x	3	1. Maná adicional  2. 3 equipamientos aleatorios  3. 30 de oro (en orden de apuesta)	Cada jugador apuesta oro en orden de turno (el oro apostado siempre se pierde). Si ganan, los premios se reparten de mayor a menor apuesta. En empate, los empatados comparten el mismo premio.	Los jugadores que no participen y el jugador con la menor apuesta pierden 2 equipamientos a elección.
+
+- Las imágenes irán numeradas en una carpeta como monstruo_1, monstruo_2, y así hasta 20, teniendo en cuenta que se deben seguir las instrucciones del manual: Prepara los 4 mazos de monstruos: baraja cada categoría, remueve 2 cartas de cada una sin mirar, y colócalos en orden para revelar de fácil a difícil: Duende → Ogro → Golem → Dragón. Al finalizar será una sola baraja con 12 monstruos.
+
+Mis numerados son 1 a 5 duende, 6 a 10 ogro, 11 a 15 golem, 16 a 20 dragón, el manual de instrucciones está en el repo: tornaris_manual_v2
+
+- Siempre empezar de día, botón para cambiar de día a noche, cambios entre día y noche o noche día tiene una transición de CSS cool
+
+Días:
+
+ID	Tipo	Nombre	Efecto	Repeticiones
+1	Día	Día Normal	Un día ordinario en el reino.	8
+2	Día	Feria del Gremio	Hoy se revelan 2 cartas por jugador en la tienda en vez de 1.	2
+3	Día	Día de Tregua	Nadie puede iniciar duelos hoy.	2
+4	Día	Monstruo Legendario	El monstruo de la mazmorra hoy tiene el doble de vida pero otorga el doble de recompensa.	2
+5	Día	Día de Suerte	Todos los jugadores pueden elegir 1 objeto de su preferencia al inicio del día.	2
+6	Día	Mazmorra Cerrada	Nadie puede ir a la mazmorra hoy. La carta de monstruo se descarta.	2
+7	Día	Doble Evento	Los jugadores en casilla de evento roban 2 cartas hoy.	3
+8	Día	Mercado Negro	Los equipamientos en tienda cuestan la mitad hoy.	2
+9	Día	Día de Caza	Los monstruos de mazmorra otorgan el doble de recompensa hoy.	2
+10	Día	Torre en Disputa	Ningún jugador puede cobrar ingresos de sus torres hoy.	1
+11	Día	Día Caótico	El orden de turno se invierte hoy.	1
+12	Día	Día Transparente	Hoy las flechas son visibles. Los jugadores eligen su casilla en orden de turno.	1
+13	Día	Recuperación General	Todos los jugadores recuperan todo su maná al inicio del día.	2
+
+Adicionalmente de día se muestar el monstruo que apareció ese día
+
+Noches:
+
+ID	Tipo	Nombre	Efecto	Repeticiones
+1	Noche	Noche Normal	La oscuridad llega sin novedades esta noche.	4
+2	Noche	Ingresos Extra	Los jugadores que trabajen esta noche ganan el doble de oro.	3
+3	Noche	Competencia en el Ring	Pueden realizarse 2 peleas en el ring esta noche en vez de 1.	2
+4	Noche	Descanso Obligatorio	Todos los jugadores recuperan todo su maná.	2
+5	Noche	Mercado Nocturno	La tienda está disponible esta noche, remplazando la casilla de "Trabajo".	1
+6	Noche	Noche Tranquila	El ring está cerrado esta noche. Nadie puede iniciar duelos.	1
+7	Noche	Noche de Caos	El orden de turno se invierte esta noche.	1
+8	Noche	Bonanza	Todos los jugadores reciben 5 de oro adicional al inicio de la noche.	2
+9	Noche	Remate Nocturno	Esta noche todos los jugadores pueden vender equipamientos por su precio completo.	2
+10	Noche	Noche Mágica	Todos los jugadores recuperan todo su maná al inicio de la noche.	1
+11	Noche	El Oráculo	Se revela la próxima carta de monstruo de la baraja de mazmorras.	1
+
+Tanto en día como en noche, debe haber un botón de duelo, al hacer click se elegirá a 2 jugadores y se mostrará contador que empieza en 0, para que puedan contabilizar mejor su daño que hacen a través de los dados o del equipamiento
+
+ID	Equipamiento	Texto	Repeticiones	Precio	Maná
+1	Escudo Pesado	Ataque +X (X = valor de un dado de otro jugador en juego que elijas).	3	10	3
+2	Ruleta Maligna	Por cada dado impar en juego: Ataque +3. Por cada par: Ataque +1.	2	10	2
+3	Comodín	Lanza un dado adicional.	3	10	3
+4	Doble Espada	Ataque +X (X = valor de uno de tus dados).	1	12	3
+5	Sello Maligno	Obliga a cualquier jugador a repetir su tirada.	2	12	2
+6	Corona de Arturo	Si en este momento el rival tiene mayor total, tu total pasa a ser el suyo +1. Mazmorra: Ataque +3.	1	14	2
+7	Escudo Mágico	Anula la próxima carta del rival en este combate. Mazmorra: Ataque +1.	2	6	2
+8	Ruleta	Ataque +2 por cada dado impar tuyo.	2	6	2
+9	Amplificador	Ataque +6 si tienes al menos dos dados iguales.	2	6	2
+10	Rayo Mortal	Ataque +6 si tienes un 6.	2	6	2
+11	Doble Filo	Intercambia uno de tus dados por otro dado en juego.	2	6	3
+12	Hacha de Batalla	Elige uno de tus dados y cámbialo al valor del otro.	2	8	2
+13	Resorte	Repite hasta 2 de tus dados.	3	8	1
+14	Afilador	Sube +3 a uno de tus dados (máximo 6).	2	8	2
+15	Pergamino Oscuro	Roba un equipamiento al azar del mazo y úsalo ignorando coste de maná. Devuélvelo al fondo al final del combate.	2	8	2
+16	Varita Mágica	Ataque +3 si el rival tiene más maná que tú. Mazmorra: Ataque +3.	2	12	1
+17	Espejo de Bolsillo	Copia el efecto de un equipamiento de cualquier jugador en juego.	2	10	2
+18	Botas Ligeras	Ataque +1 por cada dado de otro jugador en juego. Mazmorra: Ataque +1.	2	8	1
+19	Daga Hechizada	Ataque +1 por cada dado impar en la mesa. Mazmorra: Ataque +3.	2	12	1
+20	Cota de Piedra	Ataque +5.	2	10	3
+21	Reloj de Arena	Repite todos los dados de todos los jugadores en juego.	2	8	2
+22	Mazo	Ataque +2.	3	4	1
+23	Normalizador	Elige un dado tuyo y uno de otro jugador: cámbialos a 3.	3	4	2
+24	Caja Sorpresa	Repite 1 dado hasta 2 veces.	3	4	1
+25	Escudo Ligero	Ataque +2.	3	4	1
+26	Daga	Ataque +1 por cada equipamiento que hayas usado antes en este combate.	3	4	1
+27	Capa del Rey Demonio	Toma un equipamiento de la mano del rival y úsalo ignorando coste. Devuélvelo al final. Mazmorra: Ataque +3.	1	14	3
+28	Escudo de Cuero	Ataque +1 por cada equipamiento que el rival haya usado en este combate. Mazmorra: Ataque +1.	3	4	1
+29	Caña de Pescar	Anula 1 equipamiento del rival. Mazmorra: Ataque +1.	2	6	3
+30	Escudito	Ataque +1.	3	4	0
+31	Plaga	Ataque propio -2. Al final del combate pasa al rival. No puede descartarse, venderse ni usarse en mazmorras.	1	0	0
+32	Armadura de Arturo	Anula todos los equipamientos en juego. Un jugador elegido repite sus dados. Mazmorra: Ataque +3.	1	14	2
+33	Espadita	Ataque +1.	3	4	0
+34	Espada de Sigurd	Ataque +1 por cada equipamiento usado antes en este combate.	1	14	1
+35	Trampa para Osos	Ataque +3 si hubo un cambio de dados en este combate.	3	4	1
+36	Daga Envenenada	Ataque +1 por cada equipamiento que el rival juegue después de esta carta. Mazmorra: Ataque +3.	2	12	1
+37	Martillo Ligero	Ataque +3 si todos tus dados son pares.	2	1	1
+38	Escama Antigua	Ataque +3 si el rival tiene algún 6. Mazmorra: Ataque +1 por cada 10 de vida base del monstruo.	2	1	1
+39	Dados Gemelos	Ataque +4 si tus dados muestran el mismo valor.	2	1	1
+40	Ojo del Dragón	Mira la mano del rival. Elige 1 carta: no puede usarla este combate. Mazmorra: Ataque +2.	1	6	2
+41	Candado Rúnico	Elige al azar 1 carta de la mano del rival: no puede usarla este combate. Mazmorra: Ataque +1.	2	1	1
+42	Armadura Rota	Ataque +4, pero no puedes haber usado ni usar cartas en este combate después de esta.	2	1	1
+
+Al finalizar todos los turnos (12 días obligatorios) y continuar, empezará el torneo final, lee el manual para ver la organización, la app debe organizar a las personas y generarles sus opnentes, y luego poner el modo duelo.
+
