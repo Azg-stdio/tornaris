@@ -1,0 +1,12 @@
+ID,Tipo,Nombre,Efecto,Repeticiones
+1,Noche,Noche Normal,La oscuridad llega sin novedades esta noche.,4
+2,Noche,Ingresos Extra,Los jugadores que trabajen esta noche ganan el doble de oro.,3
+3,Noche,Competencia en el Ring,Pueden realizarse 2 peleas en el ring esta noche en vez de 1.,2
+4,Noche,Descanso Obligatorio,Todos los jugadores recuperan todo su maná.,2
+5,Noche,Mercado Nocturno,"La tienda está disponible esta noche, remplazando la casilla de ""Trabajo"".",1
+6,Noche,Noche Tranquila,El ring está cerrado esta noche. Nadie puede iniciar duelos.,1
+7,Noche,Noche de Caos,El orden de turno se invierte esta noche.,1
+8,Noche,Bonanza,Todos los jugadores reciben 5 de oro adicional al inicio de la noche.,2
+9,Noche,Remate Nocturno,Esta noche todos los jugadores pueden vender equipamientos por su precio completo.,2
+10,Noche,Noche Mágica,Todos los jugadores recuperan todo su maná al inicio de la noche.,1
+11,Noche,El Oráculo,Se revela la próxima carta de monstruo de la baraja de mazmorras.,1

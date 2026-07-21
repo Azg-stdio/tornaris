@@ -1,0 +1,14 @@
+ID,Tipo,Nombre,Efecto,Repeticiones
+1,Día,Día Normal,Un día ordinario en el reino.,8
+2,Día,Feria del Gremio,Hoy se revelan 2 cartas por jugador en la tienda en vez de 1.,2
+3,Día,Día de Tregua,Nadie puede iniciar duelos hoy.,2
+4,Día,Monstruo Legendario,El monstruo de la mazmorra hoy tiene el doble de vida pero otorga el doble de recompensa.,2
+5,Día,Día de Suerte,Todos los jugadores pueden elegir 1 objeto de su preferencia al inicio del día.,2
+6,Día,Mazmorra Cerrada,Nadie puede ir a la mazmorra hoy. La carta de monstruo se descarta.,2
+7,Día,Doble Evento,Los jugadores en casilla de evento roban 2 cartas hoy.,3
+8,Día,Mercado Negro,Los equipamientos en tienda cuestan la mitad hoy.,2
+9,Día,Día de Caza,Los monstruos de mazmorra otorgan el doble de recompensa hoy.,2
+10,Día,Torre en Disputa,Ningún jugador puede cobrar ingresos de sus torres hoy.,1
+11,Día,Día Caótico,El orden de turno se invierte hoy.,1
+12,Día,Día Transparente,Hoy las flechas son visibles. Los jugadores eligen su casilla en orden de turno.,1
+13,Día,Recuperación General,Todos los jugadores recuperan todo su maná al inicio del día.,2

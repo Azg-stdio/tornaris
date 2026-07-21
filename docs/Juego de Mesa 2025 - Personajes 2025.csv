@@ -1,0 +1,7 @@
+ID,Personaje,Clase,Pasiva,Objetos Iniciales
+1,Celeste,Druida,Empieza con 1 de maná adicional permanente.,2x Poción de Maná
+2,Skull,Nigromante,Al entrar a cualquier combate puede tomar 1 equipamiento aleatorio de la baraja de descarte (Si existe). Debe devolverlo al finalizar el combate.,2x Portal de Bolsillo
+3,Remi,Hombre Topo,Todas las compras en la tienda valen 2 monedas menos. Al sacar un 6 en cualquier lanzamiento de dado gana 3 de oro.,2x Cuervo Mensajero
+4,Baltazar,Mago,Una vez por combate puede repetir uno de sus dados.,2x Cristal Vidente
+5,Braulia,Escudera,Tiene 8 espacios de equipamiento en vez de 6.,2x Invocación de Familiar
+6,Nyra,Cazadora,Al ganar un combate contra un jugador le roba 7 de oro (Adicional si hay otro tipo de recompensa).,2x Guante del Duelo

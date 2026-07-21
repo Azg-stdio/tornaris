@@ -1,0 +1,28 @@
+ID,Nombre,Tipo,Texto,Repeticiones
+1,Presión del Maestro,Evento,"Tienes una larga charla con el maestro del Gremio, quien te presiona para que visites la mazmorra este turno. Debes ir a la mazmorra, resuélvela al final del turno.",1
+2,Antro de Apuestas,Evento,Encuentras un sucio antro de apuestas. Todos los jugadores deben apostar comenzando por el precio de la carta y lanzar los dados en orden. El que saque mayor número se lo lleva todo.,1
+3,Hechicero Convoca,Evento,Un hechicero te convoca a ti y hasta a dos jugadores de tu elección para derrotar al siguiente monstruo de la baraja de mazmorras. El combate ocurre inmediatamente sin cambiar la posición de ningún jugador y ala vida del monstruo se calcula dependiendo de los que vayan al combate en vez de todos los jugadores.,1
+4,Mercader Oscuro,Evento,Encuentras un mercader de dudosa reputación. El jugador de la derecha toma un equipamiento aleatorio de los que poseas y lo pone en el fondo de la baraja. Toma un nuevo equipamiento aleatorio como compensación.,1
+5,Guarida de Bandidos,Evento,Tú y tus compañeros llegan a la guarida de unos bandidos. Todos los jugadores lanzan un dado en orden. Los que saquen mayor a 3 logran salir intactos y toman 1 equipamiento aleatorio. Los que no pierden 3 monedas.,1
+6,Trato con el Mago,Evento,Haces un trato con un mago muy poderoso. Toma cualquier torre como tu propiedad sin importar si ya está ocupada.,1
+7,Flecha Envenenada,Evento,¡Te han disparado una flecha envenenada! No podrás ir a la mazmorra el próximo turno. Mantén esta carta como recordatorio y devuélvela al mazo al finalizar ese turno.,1
+8,El Impostor,Evento,Hay un impostor entre los jugadores. Lanza un dado y cuenta hacia la derecha excluyéndote. El número que caiga te deja escoger un equipamiento de su colección para ponerlo en el fondo de la baraja.,1
+9,Pozo de los Deseos,Evento,Encuentras un pozo de los deseos. Puedes invitar a un jugador y ambos toman un equipamiento aleatorio de la baraja.,1
+10,Visita al Gremio,Evento,"Haces una rápida visita al gremio, el maestro te asigna una misión urgente. Ve a la mazmorra inmediatamente y resuélvela.",1
+11,El Árbol y el Dado,Evento,Te acuestas debajo de un árbol a descansar. Di un número del 1 al 6 y lanza un dado. Si adivinas el valor exacto toma 2 equipamientos aleatorios de la baraja.,1
+12,Aldea de Enanos,Evento,Llegas a una aldea de enanos. Si pagas 3 de maná podrás tomar el primer equipamiento que encuentres en la baraja de equipamientos ignorando su coste de oro.,1
+13,Objeto en el Suelo,Evento,Encuentras un objeto en el suelo y quieres devolverlo a su dueño. Toma un equipamiento de la baraja y muéstralo. Lanza un dado y cuenta esa cantidad hacia tu derecha. Ese jugador puede tomarlo o devolverte 3 de oro.,1
+14,El Oso,Evento,"Después de salir a una aventura, todos escuchan un rugido. ¡Es un oso! Todos tiran un dado. Quien saque menos es atrapado y pierde un equipamiento de su elección. El resto gana 2 de oro.",1
+15,Todos al Gremio,Evento,"El gremio obtiene ingresos extra para todos, bueno... casi todos. Todos los jugadores lanzan un dado en orden. Todos reciben 5 monedas excepto el que saque el menor número.",1
+16,Temporada de Ofertas,Evento,¡Es temporada de ofertas! Cualquier jugador que vaya a la tienda este turno podrá comprar el equipamiento que desee por la mitad de precio.,1
+17,Nuevo Gobernante,Evento,Un nuevo gobernante se apodera del reino. Todas las torres quedan sin dueño.,1
+18,Rastro de Migajas,Evento,"Encuentras un curioso rastro de migajas en el suelo. Lanza un dado: si sacas 4 o más encuentras 5 de oro al final del camino. Si sacas 3 o menos el rastro te lleva directo a la mazmorra, debes ir obligado el siguiente día.",1
+19,Capitán Mercenario,Evento,"Contratas mercenarios en el gremio. Conserva esta carta, si estás solo en una mazmorra puedes pagar 5 de oro para lanzar 1 dado adicional. Puedes repetirlo cuantas veces quieras mientras tengas oro suficiente durante este combate.",2
+20,Duelo al Amanecer,Evento,Llevas semanas escuchando rumores de que un aventurero te llama cobarde por los pasillos del gremio. Harto de las habladurías lo retas a un duelo. Elige cualquier jugador y enfréntalo ahora. El perdedor paga 5 de oro al ganador.,2
+21,Duelo por la Torre,Evento,"Un mensajero llega con noticias: el dueño de una torre ha insultado el honor de tu clan. Reta al dueño de cualquier torre a un duelo desde donde estés. Si ganas, tomas la torre inmediatamente.",2
+22,El Equipamiento Codiciado,Evento,"Quieres con locura un equipamiento de otro integrante del gremio. Puedes retarlo a un duelo por ese equipamiento, pero él elegirá uno de tu mano. Ninguno de los dos podrá usar esos equipamientos en el duelo. El ganador se lleva ambos.",2
+23,Sincronía,Evento,¡Vaya coincidencia encontrarte aquí! Tú y cualquier jugador que haya elegido la misma casilla este turno reciben 5 de oro adicional.,2
+24,Chisme del Gremio,Evento,Un borracho en la taberna te susurra los secretos financieros de tus rivales. Elige un jugador. Ese jugador debe revelar cuánto oro tiene a todos los demás.,2
+25,Jugada Maestra,Evento,"Encuentras un extraño cristál en una tienda de antiguedades. Toma 1 ""Cristal Vidente"" de la baraja de objetos.",2
+26,Portal de Bolsillo,Evento,Un anciano borracho deja caer un artefacto nunca antes visto. Úsalo para ir a cualquier casilla que desees en cualquier momento.,2
+27,Portal de Bolsillo,Evento,"Alimentas un cuervo a las afueras de tu hostal. Toma 1 ""Cuervo Mensajero"" de la baraja de objetos.",2

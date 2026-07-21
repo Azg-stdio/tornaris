@@ -1,0 +1,25 @@
+ID,Nombre,Tipo,Texto,Repeticiones
+1,Cerveza con Amigos,Evento,¡Vas a tomar cerveza con tus amigos! Todos los jugadores obtienen un dado extra para su próxima mazmorra.,1
+2,Retrato Embarazoso,Evento,El jugador a tu derecha publica un retrato embarazoso tuyo en el gremio. A modo de venganza lo retas a un duelo. El ganador recibe 5 monedas adicionales.,1
+3,Compañero en Mal Estado,Evento,Te encuentras al compañero de tu izquierda en un estado deplorable. Dale 5 monedas o 1 equipamiento de tu mano de tu elección.,1
+4,Sopa Misteriosa,Evento,¡Oh no! Has comido una sopa misteriosa y te enfermaste. Puedes pagar 5 de oro por medicamentos o perder el siguiente turno.,1
+5,Trato con el Ladrón,Evento,Para ser el guerrero más reconocido del gremio haces un trato con un sucio ladrón. Roba 1 maná adicional al jugador con más maná actualmente. En caso de empate lanza un dado y pierde el que saque menor número.,1
+6,Goblins,Evento,Eres agredido por un grupo de Goblins. Pierdes 1 equipamiento aleatorio de tu mano.,1
+7,Economía del Pueblo,Evento,La economía de tu pueblo no se encuentra bien. El rey decide tomar medidas drásticas: todos los jugadores deberán pagar 1 moneda al banco por cada 10 que tengan.,1
+8,Jefe de Operaciones,Evento,El gremio está buscando un nuevo jefe de operaciones. Todos lanzan 1 dado. El que saque el mayor número es nombrado jefe durante el resto del juego. Si algún jugador se refiere a esa persona sin decirle jefe durante su turno deberá dar 1 moneda al banco. Mantén esta carta visible.,1
+9,Mascota Abandonada,Evento,Encuentras una mascota abandonada y la adoptas. Su mera existencia te hace seguir adelante. Ganas 1 de maná máximo adicional permanente.,1
+10,Héroe Tecnológico,Evento,Una ruptura espacial aparece en el cielo. De allí sale un héroe con tecnología increíble y un dialecto extraño. Te sorprendes un poco pero eso sucede cada dos semanas en el reino así que sigues tu camino. Ganas 5 de oro.,1
+11,Lugar en Ruinas,Evento,Te encuentras en un extraño lugar en ruinas donde parece que el tiempo no funciona de la misma manera. Tratas de escapar pero es imposible. Pasas los siguientes 5 años intentándolo y cuando todo parece perdido finalmente lo logras. Solo tú has cambiado. Ganas 1 equipamiento aleatorio.,1
+12,Enamoramiento,Evento,Después de varias misiones con el jugador a tu derecha empiezas a notar algo especial. Durante las siguientes 2 rondas no utilizarás la flecha sino que seguirás a ese jugador a la casilla que elija. Ambos jugadores ganan 3 de oro.,1
+13,Juego de Dados,Evento,Te reúnes con tus compañeros de gremio para jugar con los dados. Lanza el dado y luego los demás jugadores en orden. Págate 2 monedas por cada jugador que saque menor número al tuyo y paga 2 monedas a cada uno que saque mayor.,1
+14,Misión del Gremio,Evento,El gremio convoca a todo su personal para una peligrosa misión. El próximo día todos los jugadores irán obligatoriamente a la mazmorra.,1
+15,Araña Peculiar,Evento,Mientras caminas por el bosque una araña con colores peculiares te muerde. Empiezas a descubrir poderes especiales: podrás ver la flecha oculta del jugador a tu izquierda durante 3 turnos. Mantén esta carta visible como recordatorio.,1
+16,Cartel Se Busca,Evento,Ves un cartel de 'Se busca' en un pueblo cercano. Te acercas y descubres que es un integrante del gremio. Lanza un dado y cuenta hacia la derecha excluyéndote. Tienes 5 rondas para derrotar a ese jugador en una batalla. Si lo logras ganas 15 de oro. Mantén esta carta visible.,1
+17,Plaga Espacial,Evento,"Una extraña plaga se extiende por todo el reino. Durante la siguiente ronda, si cualquier jugador acaba en la misma casilla que otro jugador pierde 5 monedas.",1
+18,El Anillo,Evento,Encuentras un curioso anillo. Entre más lo ves más obsesionado te vuelves. Durante 5 turnos a partir de este debes evitar cualquier batalla con otro jugador. Si lo logras obtén +1 mana adicional. Si no devuelve esta carta al fondo del mazo.,1
+19,Escudero Fiel,Evento,"Paseando por la ciudad encuentras un gato negro que te mira profundamente. Toma una ""Invocación de Familiar"" de la baraja de objetos.",2
+20,Guante del Ladrón,Evento,"Te encuentras un par de guantes en una mesa del bar. ¿A quién le pertenecerán?. Toma un ""Guante del Duelo"" de la baraja de objetos.",2
+21,Cueva del Anciano,Evento,Encuentras una cueva abandonada. En el centro un anciano te advierte que es peligroso andar solo. Usa esta carta para forzar a cualquier jugador a acompañarte en una mazmorra. Ese jugador no recibirá recompensa.,2
+22,Poción de Maná,Evento,"En un callejón oscuro te cruzas con una persona extraña, al acercarse abre su gabardina para revelar productos sospechosos. Toma una ""Poción de maná"" de la baraja de objetos.",2
+23,Revancha,Evento,"No has podido dormir pensando en tu última derrota. Te levantas decidido a saldar cuentas. Toma un ""Guante del Duelo"" de la baraja de objetos. Tendrás 1 dado adicional para esa batalla.",2
+24,Reputación,Evento,El aventurero más pobre del gremio necesita ayuda. Todos los jugadores deben darle 2 monedas al jugador con menos oro. En caso de empate cada jugador elige a cuál de los empatados dar.,2
