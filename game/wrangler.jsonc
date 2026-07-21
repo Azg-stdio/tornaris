@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tornaris",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-07-01",
+
+  // Serves the client. Requests that match no file fall through to the Worker,
+  // which is how /api/* reaches us.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
+  },
+
+  // SQLite-backed Durable Objects are the only kind available on the free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+
+  "observability": { "enabled": true }
+}

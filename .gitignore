@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# wrangler local state (durable object storage, build cache)
+.wrangler/
+.dev.vars
+.dev.vars.*
+
+# build output
+dist/
+*.tsbuildinfo
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / os
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# python (asset scripts)
+__pycache__/
+*.pyc

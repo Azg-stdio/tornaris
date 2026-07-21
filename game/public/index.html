@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tornaris</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="app" class="app">
+    <!-- Landing: create or join -->
+    <section id="screen-home" class="screen is-active">
+      <div class="brand">
+        <h1 class="brand__title">Tornaris</h1>
+        <p class="brand__sub">3–6 jugadores · torneo final</p>
+      </div>
+
+      <div class="panel">
+        <label class="field">
+          <span class="field__label">Tu nombre</span>
+          <input id="input-name" class="field__input" type="text" maxlength="20"
+                 autocomplete="nickname" placeholder="Miguel" />
+        </label>
+
+        <button id="btn-create" class="btn btn--primary">Crear sala</button>
+
+        <div class="divider"><span>o</span></div>
+
+        <form id="form-join" class="join">
+          <input id="input-code" class="field__input field__input--code" type="text"
+                 maxlength="4" placeholder="CÓDIGO" autocapitalize="characters"
+                 autocomplete="off" spellcheck="false" />
+          <button id="btn-join" class="btn" type="submit">Entrar</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Lobby: pick a character, wait for friends -->
+    <section id="screen-lobby" class="screen">
+      <header class="lobby__head">
+        <div>
+          <p class="lobby__label">Código de sala</p>
+          <p id="room-code" class="lobby__code">····</p>
+        </div>
+        <button id="btn-share" class="btn btn--ghost">Copiar enlace</button>
+      </header>
+
+      <h2 class="section-title">Elige tu personaje</h2>
+      <div id="character-grid" class="chargrid"></div>
+
+      <h2 class="section-title">En la sala <span id="player-count" class="muted"></span></h2>
+      <ul id="player-list" class="players"></ul>
+
+      <p id="lobby-hint" class="hint"></p>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

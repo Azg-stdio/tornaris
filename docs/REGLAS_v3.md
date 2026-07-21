@@ -1,8 +1,7 @@
 # Tornaris — Especificación de Reglas v3
 
-> **Estado:** Spec de trabajo para la versión digital. Respuestas del playtest ya integradas.
+> **Estado:** Spec cerrada. Todas las preguntas resueltas — listo para implementar.
 > Las secciones marcadas **🆕** son cambios posteriores al manual v2.
-> Quedan **3 preguntas abiertas** al final — solo la primera bloquea el motor.
 
 ---
 
@@ -24,7 +23,7 @@ Convertirte en el Campeón de Tornaris ganando el torneo eliminatorio final. Dur
 | Mazo de monstruos | 20 cartas (5 por categoría) |
 | Mazo de día/noche | 50 cartas (30 día + 20 noche) |
 | Mazo de eventos de día | 30 cartas |
-| Mazo de eventos de noche | 24 cartas — ver ❓P3 |
+| Mazo de eventos de noche | 24 cartas |
 | Mazo de objetos | 24 cartas (6 tipos) |
 | **🆕 Ruleta** | 1 |
 
@@ -50,7 +49,7 @@ Convertirte en el Campeón de Tornaris ganando el torneo eliminatorio final. Dur
 
 ⚠️ **Las cartas de día/noche NO alternan.** Se roba 1 carta del mazo de 50 por turno y puede salir día o noche — puede haber varios días seguidos o varias noches seguidas. El número total de turnos es por tanto **variable** (aprox. 16–18 con la proporción 30/20).
 
-**El monstruo se renueva cada vez que se pasa a día.** → ver ❓P1, es el único punto que falta cerrar.
+**🆕 Cada carta de día revelada trae un monstruo nuevo.** No importa si el día anterior también fue día: siempre se renueva. La partida termina cuando se consume el décimo monstruo, es decir, **al revelarse la décima carta de día**.
 
 ---
 
@@ -63,7 +62,9 @@ Convertirte en el Campeón de Tornaris ganando el torneo eliminatorio final. Dur
 | Superior | **Mazmorra** | **Descanso** |
 | Derecho | **Tienda** | **Trabajo** |
 | Inferior | **Evento** | **Evento** |
-| Izquierdo | **Torre** | **Apuestas** (el "pit de peleas") |
+| Izquierdo | **Torre** | **Ring** (el "pit de peleas") |
+
+> **🆕 La casilla se llama "Ring".** Es un ring de peleas, no una casa de apuestas. El arte del tablero todavía dice "Apuestas" — conviene actualizarlo cuando se reimprima, pero el nombre canónico en reglas y en el juego digital es **Ring**.
 
 En el centro está el **Coliseo**, sede del Torneo Final.
 
@@ -82,7 +83,7 @@ En el centro está el **Coliseo**, sede del Torneo Final.
 |---|---|
 | **Descanso** | Recuperas todo tu maná. |
 | **Trabajo** | Ganas 5 de oro. |
-| **Apuestas** | Los 2 primeros por orden de turno se enfrentan en duelo. **🆕 Ganador: 12 de oro** (era 10). Si llega 1 solo: 3 de oro. El resto toma carta de evento. |
+| **Ring** | Los 2 primeros por orden de turno se enfrentan en duelo. **🆕 Ganador: 12 de oro** (era 10). Si llega 1 solo: 3 de oro. El resto toma carta de evento. |
 | **Evento** | Roba del mazo de eventos de noche. |
 
 ---
@@ -153,7 +154,7 @@ Reglas:
 
 ### 10.2 PvP
 
-Ocurre en: **Apuestas, Torre, eventos, Guante del Duelo y Torneo Final**.
+Ocurre en: **Ring, Torre, eventos, Guante del Duelo y Torneo Final**.
 
 **Ventaja:** orden de turno normal durante la partida; orden del torneo en el Torneo Final. Con empate en el total inicial, **el jugador sin prioridad actúa primero**.
 
@@ -267,10 +268,10 @@ Vida `Nx` = N × jugadores **en mesa**.
 |---|---|---|
 | Noche Normal | La oscuridad llega sin novedades. | 4 |
 | Ingresos Extra | Los que trabajen ganan el doble de oro. | 3 |
-| Competencia en el Ring | Pueden realizarse 2 peleas en Apuestas en vez de 1. | 2 |
+| Competencia en el Ring | Pueden realizarse 2 peleas en el Ring en vez de 1. | 2 |
 | Descanso Obligatorio | Todos recuperan todo su maná. | 2 |
 | Mercado Nocturno | La tienda reemplaza la casilla de "Trabajo". | 1 |
-| Noche Tranquila | Apuestas está cerrada. Nadie puede iniciar duelos. | 1 |
+| Noche Tranquila | El Ring está cerrado. Nadie puede iniciar duelos. | 1 |
 | Noche de Caos | El orden de turno se invierte. | 1 |
 | Bonanza | Todos reciben 5 de oro adicional al inicio de la noche. | 2 |
 | Remate Nocturno | Todos pueden vender equipamientos por su precio completo. | 2 |
@@ -287,9 +288,9 @@ Se importan desde `Eventos (Día).csv` (27 diseños) y `Eventos (Noche).csv` (24
 - Evento de día **#27** se renombra de "Portal de Bolsillo" a **"Cuervo Mensajero"** (su texto ya entregaba un Cuervo Mensajero).
 - El cambio del "evento de isekai" queda descartado.
 
-**Composición de mazos** — para llegar a la proporción 30/20 acordada:
-- **Día → 30 cartas.** Los 27 diseños a 1x, y 3 de ellos a 2x. Propuesta: *Capitán Mercenario*, *Duelo al Amanecer*, *Sincronía*.
-- **Noche → 24 cartas.** Los 24 diseños a 1x. Ver ❓P3.
+**Composición de mazos** (cerrada):
+- **Día → 30 cartas.** Los 27 diseños a 1x, y 3 de ellos a 2x: *Capitán Mercenario*, *Duelo al Amanecer*, *Sincronía*.
+- **🆕 Noche → 24 cartas.** Los 24 diseños a 1x. Se descarta bajar a 20: no vale la pena eliminar 4 cartas buenas solo por cuadrar la proporción.
 
 ---
 
@@ -333,23 +334,6 @@ El ganador del último duelo es el **Campeón de Tornaris**.
 
 ---
 
-# ❓ Preguntas abiertas
-
-**P1 — Renovación del monstruo (bloqueante).**
-Como las cartas de día/noche no alternan, hay que precisar cuándo se renueva el monstruo. Dos lecturas de *"cada vez que cambia de día se renueva"*:
-- **(a)** Cada carta de día revelada = monstruo nuevo. Con 30 cartas de día pero solo 10 monstruos, la partida termina al décimo día. Duración ≈ 16–17 turnos.
-- **(b)** Solo al **transicionar** de noche a día. Días consecutivos comparten el mismo monstruo, y quien no lo mató puede reintentarlo al día siguiente.
-
-Recomiendo **(a)**: es lo que dice la casilla de Mazmorra en el manual ("se renueva cada turno"), hace la duración predecible, y evita el caso raro de reintentar al mismo monstruo ya dañado. **(b)** es más interesante tácticamente pero alarga la partida de forma impredecible. ¿Cuál?
-
-**P2 — ¿"Apuestas" o "Ring"?**
-El tablero dice **Apuestas**; el manual v2 dice **Ring**, y una carta de noche se llama "Competencia en el **Ring**". Asumí que son la misma casilla y usé "Apuestas" (lo del tablero). ¿Confirmas, y unifico todos los textos a "Apuestas"?
-
-**P3 — Eventos de noche.**
-Hay **24 diseños** distintos pero el objetivo era **20 cartas**. Para llegar a 20 habría que **eliminar 4 diseños completos**. Mi recomendación es dejar el mazo en 24 (todos a 1x) y no borrar contenido bueno — la proporción sigue siendo mayor de día que de noche. Si prefieres 20 exactos, dime cuáles 4 cortar.
-
----
-
 # 🎨 Notas de assets
 
 **Ya disponible:**
@@ -363,16 +347,16 @@ Hay **24 diseños** distintos pero el objetivo era **20 cartas**. Para llegar a 
 
 | Clase | Personaje | Color |
 |---|---|---|
-| Druida | Celeste | `#c55619` |
-| Nigromante | Skull | `#101010` |
-| Hombre Topo | Remi | `#a0611d` |
-| Mago | Baltazar | `#1b6b89` |
-| Escudera | Braulia | `#464646` |
-| Cazadora | Nyra | `#1f5423` |
+| Druida | Celeste | `#c55619` naranja |
+| Nigromante | Skull | `#101010` negro |
+| **Hombre Topo** | Remi | **`#a8bf2a` verde lima** 🆕 |
+| Mago | Baltazar | `#1b6b89` azul |
+| Escudera | Braulia | `#464646` gris |
+| Cazadora | Nyra | `#1f5423` verde oscuro |
 
-⚠️ **Druida y Hombre Topo comparten un naranja muy parecido** (`#c55619` vs `#a0611d`). En los tokens sí se distinguen bien (Druida = naranja, Hombre Topo = verde lima), así que conviene usar el **color del token**, no el de la tarjeta, para identificar jugadores.
+**🆕 Hombre Topo usa el verde lima de su token**, no el naranja del borde de su tarjeta — ese naranja chocaba con el de Druida y hacía imposible distinguir a los dos jugadores de un vistazo. Encaja además con el personaje (el que hace dinero).
 
-**Problema detectado:** el tablero tiene un **triángulo negro en la esquina inferior derecha** — parece un error de transparencia al exportar. Habría que re-exportar con fondo transparente.
+**El tablero está bien.** (En una revisión anterior reporté un "triángulo negro" en la esquina inferior derecha; era un artefacto del visor al componer el PNG transparente sobre negro, no un defecto del archivo. Verificado: el canal alfa está limpio y esa zona es totalmente transparente. No hay que re-exportar nada.)
 
 **Assets que aún faltan:**
 - **Íconos de los 6 objetos** (Poción de Maná, Portal de Bolsillo, Cuervo Mensajero, Cristal Vidente, Invocación de Familiar, Guante del Duelo) — se usan constantemente y hoy solo serían texto. Es lo más necesario.
