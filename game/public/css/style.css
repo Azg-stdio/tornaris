@@ -196,6 +196,9 @@ body {
   border: 2px solid transparent;
   border-radius: 12px;
   background: var(--surface);
+  /* buttons don't inherit colour — without this the labels render black */
+  color: var(--ink);
+  font: inherit;
   overflow: hidden;
   cursor: pointer;
   text-align: center;

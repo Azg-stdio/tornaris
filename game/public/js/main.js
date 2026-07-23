@@ -2,8 +2,10 @@
 // The server is authoritative — we render whatever state it sends and never
 // mutate a local copy.
 
-import { CHARACTERS } from '/js/shared/data.js';
+import { CHARACTERS, MIN_PLAYERS } from '/js/shared/data.js';
 import { RoomConnection, playerId } from '/js/net.js';
+import { bindGame, renderGame, renderRailInto } from '/js/game.js';
+import { renderTournament } from '/js/tournament-ui.js';
 
 const NAME_KEY = 'tornaris_name';
 
@@ -21,8 +23,11 @@ const el = {
   playerList: $('#player-list'),
   playerCount: $('#player-count'),
   hint: $('#lobby-hint'),
+  start: $('#btn-start'),
   toast: $('#toast'),
 };
+
+bindGame();
 
 let conn = null;
 let state = null;
@@ -130,11 +135,49 @@ function renderPlayers() {
   );
 }
 
+function renderStartButton() {
+  const isHost = state.hostId === playerId();
+  const ready =
+    state.players.length >= MIN_PLAYERS &&
+    state.players.every((p) => p.characterId);
+
+  el.start.hidden = !isHost;
+  el.start.disabled = !ready;
+  el.start.textContent = ready
+    ? 'Comenzar partida'
+    : `Faltan jugadores o personajes (${state.players.length}/${MIN_PLAYERS} mín.)`;
+}
+
 function render() {
   if (!state) return;
-  el.roomCode.textContent = conn.code;
-  renderCharacters();
-  renderPlayers();
+
+  if (state.phase === 'lobby') {
+    showScreen('screen-lobby');
+    el.roomCode.textContent = conn.code;
+    renderCharacters();
+    renderPlayers();
+    renderStartButton();
+    return;
+  }
+
+  const mine = me();
+  if (!mine) {
+    showScreen('screen-lobby');
+    el.hint.textContent = 'La partida está en curso. Eres espectador.';
+    return;
+  }
+
+  const send = (msg) => conn.send(msg);
+
+  if (state.phase === 'tournament') {
+    showScreen('screen-tournament');
+    renderTournament($('#tournament'), { state, me: mine, send });
+    renderRailInto($('#trn-rail'), state, mine);
+    return;
+  }
+
+  showScreen('screen-game');
+  renderGame(state, mine, send);
 }
 
 // --- room lifecycle --------------------------------------------------------
@@ -148,7 +191,6 @@ function joinRoom(code) {
     if (!state.players.some((p) => p.id === playerId())) {
       conn.send({ type: 'join', name: el.name.value.trim() || 'Jugador' });
     }
-    showScreen('screen-lobby');
     render();
   });
 
@@ -198,6 +240,8 @@ el.joinForm.addEventListener('submit', (ev) => {
   if (code.length !== 4) return toast('El código tiene 4 caracteres', true);
   joinRoom(code);
 });
+
+el.start.addEventListener('click', () => conn.send({ type: 'startGame' }));
 
 el.share.addEventListener('click', async () => {
   const url = `${location.origin}/?sala=${conn.code}`;

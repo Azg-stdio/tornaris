@@ -1,0 +1,292 @@
+/* Game screen: board, hotspots, roulette, rail. */
+
+.game { padding-bottom: 12px; }
+
+/* Sky shifts with the phase, echoing the day/night cards. */
+body[data-phase="day"]   { --sky-a: #2b3f63; --sky-b: #16203a; }
+body[data-phase="night"] { --sky-a: #1a1430; --sky-b: #0b0814; }
+
+body[data-phase] {
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--sky-a) 0%, transparent 62%),
+    linear-gradient(180deg, var(--sky-b) 0%, var(--bg-deep) 100%);
+  transition: background 1.2s ease;
+}
+
+/* --- hud ---------------------------------------------------------------- */
+
+.hud {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.hud__turn { flex: none; text-align: center; }
+.hud__num { display: block; font-size: 12px; color: var(--ink-dim); }
+.hud__phase { display: block; font-size: 20px; font-weight: 700; }
+
+.hud__card {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.hud__card strong { display: block; font-size: 14px; color: var(--gold-bright); }
+.hud__card p { margin: 2px 0 0; font-size: 12px; color: var(--ink-dim); line-height: 1.35; }
+
+/* --- board -------------------------------------------------------------- */
+
+.boardwrap { display: flex; justify-content: center; }
+
+.board {
+  --size: min(92vw, 520px);
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+}
+
+.board__img { width: 100%; height: 100%; object-fit: contain; user-select: none; }
+
+.hotspots, .tokens { position: absolute; inset: 0; pointer-events: none; }
+.hotspot { pointer-events: auto; }
+
+/* Polar placement: rotate out to the tile, then counter-rotate so the label
+   stays upright. --r is a fraction of the board width. */
+.hotspot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 21%;
+  height: 21%;
+  margin: -10.5% 0 0 -10.5%;
+  display: grid;
+  place-content: center;
+  align-content: center;
+  gap: 3px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  /* Light enough that the painted tile still reads through. */
+  background: rgba(8, 5, 14, 0.34);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transform:
+    rotate(var(--a))
+    translateY(calc(-1 * var(--r) * var(--size)))
+    rotate(calc(-1 * var(--a)));
+  transition: background 0.18s ease, border-color 0.18s ease, scale 0.18s ease;
+}
+
+.hotspot:hover:not(:disabled) { background: rgba(10, 6, 18, 0.7); scale: 1.06; }
+.hotspot:disabled { cursor: default; }
+.hotspot.is-mine { border-color: var(--gold); background: rgba(201, 168, 76, 0.28); }
+
+.hotspot.is-blocked { background: rgba(0, 0, 0, 0.66); opacity: 0.72; }
+.hotspot.is-blocked .hotspot__label { color: var(--ink-dim); text-decoration: line-through; }
+
+/* A pill, so the UI label separates from the label painted on the board. */
+.hotspot__label {
+  font-size: clamp(9px, 2.4vw, 11px);
+  font-weight: 700;
+  text-align: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(8, 5, 14, 0.82);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hotspot__stack { display: flex; justify-content: center; gap: 4px; }
+/* Light ring, not dark: Skull's colour is near-black and would otherwise
+   vanish against the board. */
+.hotspot__stack i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(242, 234, 214, 0.85);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.hotspot__bar {
+  position: absolute;
+  inset: 44% 8% auto;
+  height: 3px;
+  background: var(--danger);
+  border-radius: 2px;
+  rotate: -20deg;
+}
+
+/* --- roulette ----------------------------------------------------------- */
+
+.roulette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: rotate(0deg);
+}
+.roulette.is-landed {
+  transform: rotate(var(--spin));
+  transition: transform 1.5s cubic-bezier(0.16, 0.9, 0.24, 1);
+}
+.roulette.is-spinning { animation: idlespin 3.5s linear infinite; }
+@keyframes idlespin { to { transform: rotate(360deg); } }
+
+/* A 90deg wedge centred on 12 o-clock, matching one arc of the board. */
+.roulette__wedge {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from -45deg,
+    rgba(194, 80, 63, 0.34) 0deg 90deg,
+    transparent 90deg
+  );
+  mask: radial-gradient(circle, transparent 26%, #000 27%, #000 52%, transparent 53%);
+}
+
+/* --- centre (coliseum) --------------------------------------------------- */
+
+.center {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 44%; height: 44%;
+  translate: -50% -50%;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.center__note {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(242, 234, 214, 0.32);
+}
+
+.monster { display: grid; gap: 2px; justify-items: center; }
+.monster__img {
+  width: min(30vw, 130px);
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6));
+}
+.monster__name { font-size: 13px; text-shadow: 0 1px 4px #000; }
+.monster__hp { font-size: 12px; color: var(--gold-bright); font-weight: 700; }
+.monster__tier {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+}
+.tier--duende { color: #8fd48a; }
+.tier--ogro   { color: #d8c069; }
+.tier--golem  { color: #9fb6d6; }
+.tier--dragon { color: #e08a6a; }
+
+/* --- action bar --------------------------------------------------------- */
+
+.actionbar {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.actionbar__msg { margin: 0; font-size: 14px; text-align: center; color: var(--ink-dim); }
+.actionbar__msg.is-warn { color: #e0a86a; }
+.actionbar__line {
+  margin: 0;
+  font-size: 13px;
+  padding: 7px 11px;
+  background: rgba(0, 0, 0, 0.24);
+  border-radius: 8px;
+}
+
+/* --- shop --------------------------------------------------------------- */
+
+.shop { display: grid; gap: 8px; }
+
+.shopitem {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.shopitem:hover:not(:disabled) { border-color: var(--gold); }
+.shopitem:disabled { opacity: 0.4; cursor: not-allowed; }
+.shopitem__text { font-size: 12px; color: var(--ink-dim); line-height: 1.35; }
+.shopitem__cost { font-size: 12px; font-weight: 700; color: var(--gold-bright); }
+
+/* --- player rail -------------------------------------------------------- */
+
+.rail {
+  display: flex;
+  gap: 10px;
+  margin: 0 -20px 14px;
+  padding: 0 20px 6px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.rail::-webkit-scrollbar { display: none; }
+
+.railcard {
+  flex: 0 0 138px;
+  scroll-snap-align: start;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.railcard.is-me { background: var(--surface-strong); border-color: var(--gold); }
+.railcard.is-offline { opacity: 0.45; }
+
+.railcard__head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.railcard__head img { width: 26px; height: 26px; border-radius: 50%; flex: none; }
+.railcard__name { font-size: 13px; font-weight: 700; }
+.railcard__token { color: var(--gold-bright); margin-left: 4px; }
+
+.railcard__stats { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.stat { font-size: 12px; font-weight: 600; }
+.stat i {
+  display: block;
+  font-size: 9px;
+  font-style: normal;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* --- log ---------------------------------------------------------------- */
+
+.logbox { border-top: 1px solid var(--border); padding-top: 10px; }
+.logbox summary { font-size: 12px; color: var(--ink-dim); cursor: pointer; }
+.log {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.6;
+}
+
+@media (min-width: 720px) {
+  .app { max-width: 720px; }
+  .board { --size: min(78vw, 560px); }
+}

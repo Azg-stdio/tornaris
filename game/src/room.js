@@ -14,6 +14,10 @@ import { MAX_PLAYERS, MIN_PLAYERS, CHARACTERS } from '../public/js/shared/data.j
 import {
   startGame, spinRoulette, chooseTile, unchooseTile,
   buyEquipment, sellEquipment, nextTurn, turnComplete, viewFor,
+  beginDungeonCombat, dungeonUse, dungeonPass, dungeonDeclare,
+  beginDuel, duelUse, duelPass,
+  rollTournamentOrder, convertGold, finishConversion,
+  startTournamentMatch, tournamentUse, tournamentPass,
 } from '../public/js/shared/engine.js';
 
 const SAVE_DEBOUNCE_MS = 2000;
@@ -161,6 +165,38 @@ export class Room {
       case 'nextTurn':
         if (!turnComplete(game)) throw new Error('falta resolver combates');
         return nextTurn(game);
+
+      // --- combat
+      case 'beginDungeon':
+        return beginDungeonCombat(game);
+      case 'dungeonUse':
+        return dungeonUse(game, playerId, msg.equipmentId, msg.manualBonus);
+      case 'dungeonPass':
+        return dungeonPass(game, playerId);
+      case 'dungeonDeclare':
+        return dungeonDeclare(game, msg.outcome);
+      case 'beginDuel':
+        return beginDuel(game, msg.aId, msg.bId, msg.context);
+      case 'duelUse':
+        return duelUse(game, playerId, msg.equipmentId, msg.manualBonus);
+      case 'duelPass':
+        return duelPass(game, playerId);
+
+      // --- tournament
+      case 'rollTournamentOrder':
+        this.requireHost(game, playerId);
+        return rollTournamentOrder(game);
+      case 'convertGold':
+        return convertGold(game, playerId, msg.effect);
+      case 'finishConversion':
+        this.requireHost(game, playerId);
+        return finishConversion(game);
+      case 'startMatch':
+        return startTournamentMatch(game);
+      case 'tournamentUse':
+        return tournamentUse(game, playerId, msg.equipmentId, msg.manualBonus);
+      case 'tournamentPass':
+        return tournamentPass(game, playerId);
 
       case 'ping':
         return; // keepalive

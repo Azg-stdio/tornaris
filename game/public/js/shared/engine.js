@@ -14,12 +14,19 @@ import {
 
 import {
   ARCS, DAY_TILES, NIGHT_TILES, arcOfTile,
-  STARTING_GOLD, TRABAJO_GOLD, TOWER_INCOME, TOWER_LOCK_TURNS,
+  STARTING_GOLD, TRABAJO_GOLD, TOWER_INCOME, TOWER_LOCK_TURNS, RING_WIN_GOLD,
   MONSTER_DECK_COMPOSITION, TOTAL_MONSTERS,
   MANA_GAIN_PER_TIER_TRANSITION, monsterHp,
+  BRACKETS, GOLD_CONVERSIONS,
 } from './rules.js';
 
 import { effectsFor } from './effects.js';
+
+import {
+  startDungeon, useEquipmentInDungeon, passDungeon, dungeonTotal,
+  declareDungeonOutcome,
+  startDuel, useEquipmentInDuel, passDuel,
+} from './combat.js';
 
 const TIER_ORDER = ['duende', 'ogro', 'golem', 'dragon'];
 
@@ -497,6 +504,175 @@ function resolve(state) {
   turn.step = 'resolved';
 }
 
+// --- combat ----------------------------------------------------------------
+
+/** Parses reward/penalty prose into the parts we can actually apply. */
+function parseSpoils(text) {
+  if (!text) return { gold: 0, equipment: 0, mana: 0, manual: null };
+  const gold = /(\d+)\s*de oro/i.exec(text);
+  const equip = /(\d+)\s*equipamientos?/i.exec(text);
+  const mana = /(\d+)?\s*man[áa] adicional/i.exec(text);
+  const parsed = {
+    gold: gold ? Number(gold[1]) : 0,
+    equipment: equip ? Number(equip[1]) : 0,
+    mana: mana ? Number(mana[1] ?? 1) : 0,
+  };
+  // Anything with a clause we can't model is surfaced for the table to apply.
+  const modelled = parsed.gold || parsed.equipment || parsed.mana;
+  parsed.manual = modelled && !/lanza|elige|descarta|pierde|reparte|apuesta/i.test(text)
+    ? null
+    : text;
+  return parsed;
+}
+
+export function beginDungeonCombat(state) {
+  const turn = requireTurn(state);
+  if (!turn.combatants.length) throw new Error('nadie fue a la mazmorra');
+  if (turn.combat) return turn.combat;
+
+  const roll = () => rollDie(state);
+  turn.combat = startDungeon(state, { roll });
+
+  // Some monsters (Mímico) decide the fight before anyone acts. Settle up now,
+  // otherwise the first pass would find an already-finished combat and pay out.
+  if (turn.combat.step === 'done') applyDungeonOutcome(state, turn.combat);
+  return turn.combat;
+}
+
+export function dungeonUse(state, playerId, equipmentId, manualBonus) {
+  const turn = requireTurn(state);
+  if (!turn.combat) throw new Error('no hay combate activo');
+  return useEquipmentInDungeon(
+    state, turn.combat, playerId, equipmentId, manualBonus, () => rollDie(state),
+  );
+}
+
+export function dungeonPass(state, playerId) {
+  const turn = requireTurn(state);
+  if (!turn.combat) throw new Error('no hay combate activo');
+  const combat = passDungeon(state, turn.combat, playerId);
+  if (combat.step === 'done') applyDungeonOutcome(state, combat);
+  return combat;
+}
+
+/** For monsters whose result the table declares (Polilla, Dragón Terrestre, Rey de los Cielos). */
+export function dungeonDeclare(state, outcome) {
+  const turn = requireTurn(state);
+  if (!turn.combat) throw new Error('no hay combate activo');
+  const combat = declareDungeonOutcome(state, turn.combat, outcome);
+  applyDungeonOutcome(state, combat);
+  return combat;
+}
+
+function applyDungeonOutcome(state, combat) {
+  // Rewards and penalties are paid exactly once, no matter how many times a
+  // finished combat is observed.
+  if (combat.settled) return combat;
+  combat.settled = true;
+
+  const turn = state.turn;
+  const monster = monsterById(combat.monsterId);
+  const doubled = Boolean(turn.effects?.doubleMonsterReward) || combat.legendary;
+
+  if (combat.outcome === 'victory') {
+    const spoils = parseSpoils(monster.reward);
+    for (const f of combat.fighters) {
+      const p = state.players.find((x) => x.id === f.playerId);
+      if (!p) continue;
+      const gold = spoils.gold * (doubled ? 2 : 1);
+      if (gold) p.gold += gold;
+      if (spoils.mana) p.maxMana += spoils.mana;
+      for (let i = 0; i < spoils.equipment * (doubled ? 2 : 1); i++) {
+        const eq = drawEquipment(state);
+        if (eq != null && p.equipment.length < p.equipmentSlots) p.equipment.push(eq);
+      }
+    }
+    log(state, `Victoria contra ${monster.name}.`);
+    if (spoils.manual) {
+      combat.manualNote = `Aplicad a mano: ${monster.reward}`;
+    }
+  } else {
+    const spoils = parseSpoils(monster.penalty);
+    for (const f of combat.fighters) {
+      const p = state.players.find((x) => x.id === f.playerId);
+      if (!p) continue;
+      p.gold = Math.max(0, p.gold - spoils.gold);
+    }
+    log(state, `Derrota contra ${monster.name}.`);
+    if (spoils.manual) {
+      combat.manualNote = `Aplicad a mano: ${monster.penalty}`;
+    }
+  }
+
+  turn.monsterDefeated = combat.outcome === 'victory';
+  turn.combatants = [];
+}
+
+export function beginDuel(state, aId, bId, context = 'ring') {
+  const turn = requireTurn(state);
+  if (turn.duel) return turn.duel;
+
+  // Advantage follows the token order: whoever comes first this turn.
+  const order = turnOrder(state).map((p) => p.id);
+  const advantageId = order.indexOf(aId) < order.indexOf(bId) ? aId : bId;
+
+  turn.duel = startDuel(state, aId, bId, {
+    roll: () => rollDie(state),
+    advantageId,
+    context,
+  });
+  return turn.duel;
+}
+
+export function duelUse(state, playerId, equipmentId, manualBonus) {
+  const turn = requireTurn(state);
+  if (!turn.duel) throw new Error('no hay duelo activo');
+  return useEquipmentInDuel(
+    state, turn.duel, playerId, equipmentId, manualBonus, () => rollDie(state),
+  );
+}
+
+export function duelPass(state, playerId) {
+  const turn = requireTurn(state);
+  if (!turn.duel) throw new Error('no hay duelo activo');
+  const duel = passDuel(state, turn.duel, playerId);
+  if (duel.step === 'done') applyDuelOutcome(state, duel);
+  return duel;
+}
+
+function applyDuelOutcome(state, duel) {
+  if (duel.settled) return duel;
+  duel.settled = true;
+
+  const turn = state.turn;
+  const winner = state.players.find((p) => p.id === duel.winnerId);
+  const loser = state.players.find(
+    (p) => duel.sides.some((s) => s.playerId === p.id) && p.id !== duel.winnerId,
+  );
+
+  if (duel.context === 'ring') {
+    winner.gold += duel.stake;
+    log(state, `${winner.name} gana el Ring: +${duel.stake} de oro.`);
+    turn.ringFighters = [];
+  } else if (duel.context === 'torre') {
+    state.tower.ownerId = winner.id;
+    state.tower.lockedUntilTurn = turn.number + TOWER_LOCK_TURNS;
+    log(state, `${winner.name} conquista la torre.`);
+    turn.towerChallengers = [];
+  }
+
+  // Nyra steals gold whenever she beats another player.
+  const c = characterById(winner.characterId);
+  if (c?.id === 'nyra' && loser) {
+    const stolen = Math.min(7, loser.gold);
+    loser.gold -= stolen;
+    winner.gold += stolen;
+    log(state, `${winner.name} roba ${stolen} de oro.`);
+  }
+
+  turn.duel = null;
+}
+
 // --- shop ------------------------------------------------------------------
 
 export function buyEquipment(state, playerId, equipmentId) {
@@ -588,6 +764,183 @@ export function nextTurn(state) {
 
   beginTurn(state);
   return state;
+}
+
+// --- tournament ------------------------------------------------------------
+
+/** Everyone rolls; highest seeds first, order continues to the right. */
+export function rollTournamentOrder(state) {
+  if (state.phase !== 'tournament') throw new Error('aún no es el torneo');
+  if (state.tournament) return state.tournament;
+
+  const rolls = state.players.map((p) => ({
+    playerId: p.id,
+    name: p.name,
+    roll: rollDie(state),
+    seat: p.seat,
+  }));
+
+  // Highest roll takes first place; ties break by seat, then the order walks
+  // right from that player around the table.
+  const best = [...rolls].sort((a, b) => b.roll - a.roll || a.seat - b.seat)[0];
+  const bySeat = [...state.players].sort((a, b) => a.seat - b.seat);
+  const start = bySeat.findIndex((p) => p.id === best.playerId);
+  const seeded = [...bySeat.slice(start), ...bySeat.slice(0, start)];
+
+  state.tournament = {
+    step: 'conversion',
+    rolls,
+    seeds: seeded.map((p) => p.id),
+    rounds: buildBracket(seeded.map((p) => p.id)),
+    currentMatch: null,
+    championId: null,
+  };
+
+  log(state, `Orden del torneo: ${seeded.map((p) => p.name).join(' → ')}.`);
+  return state.tournament;
+}
+
+/** Expands the BRACKETS template into concrete matches. */
+function buildBracket(seedIds) {
+  const template = BRACKETS[seedIds.length];
+  if (!template) throw new Error(`no hay bracket para ${seedIds.length} jugadores`);
+
+  return template.map((round, ri) => ({
+    name: round.round,
+    matches: round.matches.map((pair, mi) => ({
+      id: `${ri}.${mi}`,
+      slots: pair,
+      aId: null,
+      bId: null,
+      winnerId: null,
+    })),
+  }));
+}
+
+/** Resolves a slot reference ("seed:2" / "win:0.1") to a player id. */
+function resolveSlot(tournament, ref) {
+  if (ref.startsWith('seed:')) return tournament.seeds[Number(ref.slice(5))] ?? null;
+  const [ri, mi] = ref.slice(4).split('.').map(Number);
+  return tournament.rounds[ri]?.matches[mi]?.winnerId ?? null;
+}
+
+/** Fills in whatever match is ready to play, or crowns the champion. */
+export function advanceTournament(state) {
+  const t = state.tournament;
+  if (!t) throw new Error('el torneo no ha empezado');
+
+  // Resolve every slot we can, not just the next match — the whole bracket is
+  // public information and players want to see who they'd face later.
+  for (const round of t.rounds) {
+    for (const match of round.matches) {
+      match.aId ??= resolveSlot(t, match.slots[0]);
+      match.bId ??= resolveSlot(t, match.slots[1]);
+    }
+  }
+
+  for (const round of t.rounds) {
+    for (const match of round.matches) {
+      if (match.winnerId) continue;
+      if (match.aId && match.bId) {
+        t.step = 'match';
+        t.currentMatch = match.id;
+        return t;
+      }
+      return t; // an earlier round still has to finish
+    }
+  }
+
+  const final = t.rounds.at(-1).matches.at(-1);
+  t.championId = final.winnerId;
+  t.step = 'done';
+  const champ = state.players.find((p) => p.id === t.championId);
+  log(state, `¡${champ?.name} es Campeón de Tornaris!`);
+  return t;
+}
+
+export function startTournamentMatch(state) {
+  const t = state.tournament;
+  if (!t?.currentMatch) throw new Error('no hay combate preparado');
+  if (t.duel) return t.duel;
+
+  const match = findMatch(t, t.currentMatch);
+  // In the tournament, advantage follows the tournament order, not the token.
+  const advantageId =
+    t.seeds.indexOf(match.aId) < t.seeds.indexOf(match.bId) ? match.aId : match.bId;
+
+  t.duel = startDuel(state, match.aId, match.bId, {
+    roll: () => rollDie(state),
+    advantageId,
+    context: 'torneo',
+    stake: 0,
+  });
+  return t.duel;
+}
+
+export function tournamentUse(state, playerId, equipmentId, manualBonus) {
+  const t = state.tournament;
+  if (!t?.duel) throw new Error('no hay duelo activo');
+  return useEquipmentInDuel(
+    state, t.duel, playerId, equipmentId, manualBonus, () => rollDie(state),
+  );
+}
+
+export function tournamentPass(state, playerId) {
+  const t = state.tournament;
+  if (!t?.duel) throw new Error('no hay duelo activo');
+  const duel = passDuel(state, t.duel, playerId);
+
+  if (duel.step === 'done') {
+    const match = findMatch(t, t.currentMatch);
+    match.winnerId = duel.winnerId;
+    t.duel = null;
+    t.currentMatch = null;
+    // Equipment recharges between fights, so refill mana for the next round.
+    for (const p of state.players) p.mana = p.maxMana;
+    advanceTournament(state);
+  }
+  return t;
+}
+
+function findMatch(t, id) {
+  for (const round of t.rounds) {
+    const m = round.matches.find((x) => x.id === id);
+    if (m) return m;
+  }
+  throw new Error('combate desconocido');
+}
+
+/** Pre-tournament gold conversion. */
+export function convertGold(state, playerId, effect) {
+  const t = state.tournament;
+  if (t?.step !== 'conversion') throw new Error('ya no puedes convertir oro');
+
+  const option = GOLD_CONVERSIONS.find((o) => o.effect === effect);
+  if (!option) throw new Error('opción desconocida');
+
+  const p = requirePlayer(state, playerId);
+  if (p.gold < option.gold) throw new Error('no tienes suficiente oro');
+
+  p.gold -= option.gold;
+  if (effect === 'equipment') {
+    const eq = drawEquipment(state);
+    if (eq != null) p.equipment.push(eq);
+  } else if (effect === 'slot') {
+    p.equipmentSlots += 1;
+  } else if (effect === 'mana') {
+    p.maxMana += 1;
+    p.mana += 1;
+  }
+  log(state, `${p.name} convierte ${option.gold} de oro: ${option.label}.`);
+  return state;
+}
+
+export function finishConversion(state) {
+  const t = state.tournament;
+  if (!t) throw new Error('el torneo no ha empezado');
+  for (const p of state.players) p.mana = p.maxMana;
+  advanceTournament(state);
+  return t;
 }
 
 // --- helpers ---------------------------------------------------------------

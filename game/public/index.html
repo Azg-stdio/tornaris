@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Tornaris</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/game.css" />
+  <link rel="stylesheet" href="/css/combat.css" />
+  <link rel="stylesheet" href="/css/tournament.css" />
 </head>
 <body>
   <div id="app" class="app">
@@ -52,6 +55,45 @@
       <ul id="player-list" class="players"></ul>
 
       <p id="lobby-hint" class="hint"></p>
+      <button id="btn-start" class="btn btn--primary" disabled>Comenzar partida</button>
+    </section>
+
+    <!-- Game: board, voting, resolution -->
+    <section id="screen-game" class="screen game">
+      <header class="hud">
+        <div class="hud__turn">
+          <span id="hud-turn" class="hud__num">Turno 1</span>
+          <span id="hud-phase" class="hud__phase">Día</span>
+        </div>
+        <div class="hud__card">
+          <strong id="card-name"></strong>
+          <p id="card-text"></p>
+        </div>
+      </header>
+
+      <div class="boardwrap">
+        <div id="board" class="board">
+          <img class="board__img" src="/assets/board.webp" alt="Tablero de Tornaris" />
+          <div id="hotspots" class="hotspots"></div>
+          <div id="tokens" class="tokens"></div>
+          <div id="center" class="center"></div>
+        </div>
+      </div>
+
+      <div id="actionbar" class="actionbar"></div>
+
+      <ul id="rail" class="rail"></ul>
+
+      <details class="logbox">
+        <summary>Registro</summary>
+        <ol id="log" class="log"></ol>
+      </details>
+    </section>
+
+    <!-- Final tournament -->
+    <section id="screen-tournament" class="screen trn">
+      <div id="tournament"></div>
+      <ul id="trn-rail" class="rail"></ul>
     </section>
   </div>
 
